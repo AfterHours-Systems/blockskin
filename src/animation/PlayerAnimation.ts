@@ -13,10 +13,20 @@ export abstract class PlayerAnimation {
   paused = false
   progress = 0
 
+  private _switchCount = 0
   private nextId = 0
   private readonly layers = new Map<number, { fn: LayerFn; start: number }>()
 
   protected abstract animate(player: PlayerObject, delta: number): void
+
+  /** Increases whenever the animation jumps to a different motion, so a driver can blend. */
+  get switchCount(): number {
+    return this._switchCount
+  }
+
+  protected markSwitch(): void {
+    this._switchCount++
+  }
 
   update(player: PlayerObject, deltaSeconds: number): void {
     if (this.paused) return

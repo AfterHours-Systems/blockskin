@@ -283,14 +283,15 @@ export class PlayerObject extends Group {
     this.captureRestPose()
   }
 
-  private joints(): Group[] {
+  /** Every transform an animation may move, the player itself included. */
+  poseJoints(): Group[] {
     const { leftWing, rightWing } = this.elytra
     return [this, ...this.skin.parts(), this.cape, this.elytra, leftWing, rightWing, this.ears]
   }
 
   private captureRestPose(): void {
     this.restPose = new Map(
-      this.joints().map((joint) => [
+      this.poseJoints().map((joint) => [
         joint,
         { position: joint.position.clone(), rotation: joint.rotation.clone() },
       ]),

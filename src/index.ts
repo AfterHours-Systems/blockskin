@@ -39,3 +39,5 @@ export {
   type SkinLoadOptions,
   type SkinViewerOptions,
 } from './viewer/SkinViewer.js'
+export * from './driver/pose.js'
+export { PlayerDriver, type PlayerDriverOptions } from './driver/PlayerDriver.js'
