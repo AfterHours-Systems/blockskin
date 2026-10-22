@@ -89,6 +89,7 @@ function ReactView({ state, skin, cape, panorama, onError, onLoad, onPoke, apiRe
       lookAtPointer={state.lookAt === 'off' ? false : state.lookAt}
       layers3d={state.layers3d}
       shadow={state.shadow}
+      reducedMotion={state.reducedMotion}
       upsideDown={state.upsideDown}
       background={state.background || null}
       panorama={panorama}
@@ -185,6 +186,9 @@ function VanillaView({ state, skin, cape, panorama, onError, onLoad, onPoke, api
     if (viewer) viewer.shadow = state.shadow
   }, [viewer, state.shadow])
   useEffect(() => {
+    if (viewer) viewer.reducedMotion = state.reducedMotion
+  }, [viewer, state.reducedMotion])
+  useEffect(() => {
     if (!viewer) return
     viewer.playerObject.upsideDown = state.upsideDown
     viewer.fov = state.fov
@@ -252,6 +256,7 @@ function PlayerView({ state, skin, cape, onError, onLoad, onPoke, apiRef }: View
           lookAtPointer={state.lookAt === 'off' ? false : state.lookAt}
           layers3d={state.layers3d}
           shadow={state.shadow}
+          reducedMotion={state.reducedMotion}
           onError={onError}
           onLoad={onLoad}
         />

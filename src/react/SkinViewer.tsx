@@ -28,6 +28,7 @@ import type { OrbitControls as ThreeOrbitControls } from 'three/addons/controls/
 import type { PlayerObject } from '../model/PlayerObject.js'
 import { loadTextureSource, type ImageInput } from '../textures/input.js'
 import { createLatestWins } from '../textures/sequence.js'
+import { watchReducedMotion, type ReducedMotionMode } from '../interaction/motion.js'
 import { cameraDistance } from '../viewer/framing.js'
 import { MinecraftPlayer, type MinecraftPlayerProps } from './MinecraftPlayer.js'
 import { OrbitControls } from './OrbitControls.js'
@@ -98,6 +99,7 @@ function useDevicePixelRatio(enabled: boolean): number {
 }
 
 interface StageProps {
+  reducedMotion: ReducedMotionMode
   fov: number
   zoom: number
   controls: boolean
@@ -117,6 +119,7 @@ interface StageProps {
 }
 
 function Stage({
+  reducedMotion,
   fov,
   zoom,
   controls,
@@ -137,6 +140,15 @@ function Stage({
   const { gl, scene, camera } = useThree()
   const wrapper = useRef<Group>(null)
   const dragging = useRef(false)
+  // Auto-rotate pauses while motion is reduced; the player handles the rest.
+  const motionReduced = useRef(false)
+  useEffect(
+    () =>
+      watchReducedMotion(reducedMotion, (reduced) => {
+        motionReduced.current = reduced
+      }),
+    [reducedMotion],
+  )
   // No distance falloff, so the intensity means the same at any zoom.
   const cameraLight = useMemo(() => new PointLight(0xffffff, 0, 0, 0), [])
   const loadBackground = useMemo(() => createLatestWins(), [])
@@ -206,7 +218,12 @@ function Stage({
   }, [])
 
   useFrame((_, delta) => {
-    if (autoRotate && wrapper.current && !(controls && dragging.current)) {
+    if (
+      autoRotate &&
+      !motionReduced.current &&
+      wrapper.current &&
+      !(controls && dragging.current)
+    ) {
       wrapper.current.rotation.y += delta * autoRotateSpeed
     }
   })
@@ -301,6 +318,7 @@ export function SkinViewer({
         camera={{ fov, position: [0, 0, cameraDistance(fov, zoom)] }}
       >
         <Stage
+          reducedMotion={playerProps.reducedMotion ?? 'system'}
           fov={fov}
           zoom={zoom}
           controls={controls}

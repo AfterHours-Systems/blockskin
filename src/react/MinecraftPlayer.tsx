@@ -5,6 +5,7 @@ import type { ModelType } from '../format/skin.js'
 import { PlayerDriver } from '../driver/PlayerDriver.js'
 import { DEFAULT_REACTIONS, type ReactionSet } from '../driver/reactions.js'
 import { addPointerListener, pointerTarget } from '../interaction/look.js'
+import { watchReducedMotion, type ReducedMotionMode } from '../interaction/motion.js'
 import {
   awayFromCamera,
   isPoke,
@@ -57,6 +58,8 @@ export interface MinecraftPlayerProps extends Omit<
   layers3d?: boolean
   /** A soft round shadow on the ground under the player. Off by default. */
   shadow?: boolean
+  /** Calm the player down for users who reduce motion: 'system' (the default) follows their setting. */
+  reducedMotion?: ReducedMotionMode
   onLoad?: (model: ModelType) => void
   onError?: (error: unknown) => void
   ref?: Ref<PlayerObject | null>
@@ -83,6 +86,7 @@ export function MinecraftPlayer({
   lookAtPointer = false,
   layers3d = false,
   shadow = false,
+  reducedMotion = 'system',
   onLoad,
   onError,
   ref,
@@ -200,6 +204,14 @@ export function MinecraftPlayer({
   useEffect(() => {
     if (player) player.layers3d = layers3d
   }, [player, layers3d])
+
+  useEffect(() => {
+    if (!driver) return
+    return watchReducedMotion(reducedMotion, (reduced) => {
+      driver.reducedMotion = reduced
+      invalidate()
+    })
+  }, [driver, reducedMotion, invalidate])
 
   const [shadowMesh, setShadowMesh] = useState<Mesh | null>(null)
   useEffect(() => {

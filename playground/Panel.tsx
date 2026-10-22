@@ -165,6 +165,16 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
         {check('upsideDown')}
         {check('layers3d')}
         {check('shadow')}
+        <select
+          value={state.reducedMotion}
+          onChange={(e) =>
+            set({ reducedMotion: e.target.value as PlaygroundState['reducedMotion'] })
+          }
+        >
+          <option value="system">reduced motion: system</option>
+          <option value="always">reduced motion: always</option>
+          <option value="never">reduced motion: never</option>
+        </select>
       </fieldset>
       <fieldset>
         <legend>Animation</legend>

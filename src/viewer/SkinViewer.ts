@@ -23,6 +23,7 @@ import { PlayerDriver } from '../driver/PlayerDriver.js'
 import { DEFAULT_REACTIONS, type ReactionSet } from '../driver/reactions.js'
 import { createShadow, disposeShadow, updateShadow } from '../model/shadow.js'
 import { addPointerListener, pointerTarget } from '../interaction/look.js'
+import { watchReducedMotion, type ReducedMotionMode } from '../interaction/motion.js'
 import {
   awayFromCamera,
   findPokedPart,
@@ -86,6 +87,8 @@ export interface SkinViewerOptions {
   layers3d?: boolean
   /** A soft round shadow on the ground under the player. Off by default. */
   shadow?: boolean
+  /** Calm the player down for users who reduce motion: 'system' (the default) follows their setting. */
+  reducedMotion?: ReducedMotionMode
   nameTag?: NameTagObject | string | null
   /** Multisample anti-aliasing. Defaults to true. */
   antialias?: boolean
@@ -201,6 +204,7 @@ export class SkinViewer {
     this.lookAtPointer = options.lookAtPointer ?? false
     this.playerObject.layers3d = options.layers3d ?? false
     this.shadow = options.shadow ?? false
+    this.reducedMotion = options.reducedMotion ?? 'system'
     this.canvas.addEventListener('pointerdown', this.onPointerDown)
     this.canvas.addEventListener('pointerup', this.onPointerUp)
     this.canvas.addEventListener('webglcontextlost', this.onContextLost)
@@ -235,6 +239,28 @@ export class SkinViewer {
 
   private _lookAtPointer: false | 'window' | 'canvas' = false
   private stopLooking: (() => void) | null = null
+
+  private _reducedMotion: ReducedMotionMode | null = null
+  private motionReduced = false
+  private stopMotionWatch: (() => void) | null = null
+
+  get reducedMotion(): ReducedMotionMode {
+    return this._reducedMotion ?? 'system'
+  }
+
+  /**
+   * When motion is reduced the player holds still, auto-rotate pauses (the
+   * autoRotate setting itself is kept) and pokes only flash.
+   */
+  set reducedMotion(mode: ReducedMotionMode) {
+    if (mode === this._reducedMotion) return
+    this._reducedMotion = mode
+    this.stopMotionWatch?.()
+    this.stopMotionWatch = watchReducedMotion(mode, (reduced) => {
+      this.motionReduced = reduced
+      this.driver.reducedMotion = reduced
+    })
+  }
 
   private shadowMesh: Mesh | null = null
 
@@ -358,7 +384,7 @@ export class SkinViewer {
     this.driver.update(dt)
     if (this.shadowMesh) updateShadow(this.shadowMesh, this.playerObject)
     this.placeNameTag()
-    if (this.autoRotate && !(this.controls.enabled && this.dragging)) {
+    if (this.autoRotate && !this.motionReduced && !(this.controls.enabled && this.dragging)) {
       this.playerWrapper.rotation.y += dt * this.autoRotateSpeed
     }
     this.controls.update()
@@ -629,6 +655,8 @@ export class SkinViewer {
     this.controls.dispose()
     this.nameTag = null
     this.background = null
+    this.stopMotionWatch?.()
+    this.stopMotionWatch = null
     this.driver.dispose()
     this.shadow = false
     this.playerObject.dispose()
