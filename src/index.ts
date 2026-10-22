@@ -44,3 +44,4 @@ export { PlayerDriver, type PlayerDriverOptions } from './driver/PlayerDriver.js
 export * from './driver/reactions.js'
 export * from './interaction/poke.js'
 export * from './interaction/look.js'
+export * from './model/shadow.js'

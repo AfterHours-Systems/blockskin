@@ -18,7 +18,14 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
       set({ [key]: Number(e.target.value) })
   const check = (
     key:
-      'paused' | 'upsideDown' | 'panorama' | 'autoRotate' | 'controls' | 'reactions' | 'layers3d',
+      | 'paused'
+      | 'upsideDown'
+      | 'panorama'
+      | 'autoRotate'
+      | 'controls'
+      | 'reactions'
+      | 'layers3d'
+      | 'shadow',
   ) => (
     <label>
       <input
@@ -157,6 +164,7 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
         </label>
         {check('upsideDown')}
         {check('layers3d')}
+        {check('shadow')}
       </fieldset>
       <fieldset>
         <legend>Animation</legend>

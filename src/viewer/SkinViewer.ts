@@ -3,6 +3,7 @@ import {
   Color,
   EquirectangularReflectionMapping,
   Group,
+  Mesh,
   PerspectiveCamera,
   PointLight,
   SRGBColorSpace,
@@ -20,6 +21,7 @@ import type { PlayerAnimation } from '../animation/PlayerAnimation.js'
 import type { ModelType } from '../format/skin.js'
 import { PlayerDriver } from '../driver/PlayerDriver.js'
 import { DEFAULT_REACTIONS, type ReactionSet } from '../driver/reactions.js'
+import { createShadow, disposeShadow, updateShadow } from '../model/shadow.js'
 import { addPointerListener, pointerTarget } from '../interaction/look.js'
 import {
   awayFromCamera,
@@ -82,6 +84,8 @@ export interface SkinViewerOptions {
   lookAtPointer?: boolean | 'window' | 'canvas'
   /** Draw the outer layer as small blocks, like the "3D Skin Layers" mod. Off by default. */
   layers3d?: boolean
+  /** A soft round shadow on the ground under the player. Off by default. */
+  shadow?: boolean
   nameTag?: NameTagObject | string | null
   /** Multisample anti-aliasing. Defaults to true. */
   antialias?: boolean
@@ -196,6 +200,7 @@ export class SkinViewer {
     this.onPoke = options.onPoke ?? null
     this.lookAtPointer = options.lookAtPointer ?? false
     this.playerObject.layers3d = options.layers3d ?? false
+    this.shadow = options.shadow ?? false
     this.canvas.addEventListener('pointerdown', this.onPointerDown)
     this.canvas.addEventListener('pointerup', this.onPointerUp)
     this.canvas.addEventListener('webglcontextlost', this.onContextLost)
@@ -230,6 +235,25 @@ export class SkinViewer {
 
   private _lookAtPointer: false | 'window' | 'canvas' = false
   private stopLooking: (() => void) | null = null
+
+  private shadowMesh: Mesh | null = null
+
+  get shadow(): boolean {
+    return this.shadowMesh !== null
+  }
+
+  set shadow(value: boolean) {
+    if (value === this.shadow) return
+    if (value) {
+      this.shadowMesh = createShadow()
+      this.centre.add(this.shadowMesh)
+      updateShadow(this.shadowMesh, this.playerObject)
+    } else if (this.shadowMesh) {
+      this.centre.remove(this.shadowMesh)
+      disposeShadow(this.shadowMesh)
+      this.shadowMesh = null
+    }
+  }
 
   get layers3d(): boolean {
     return this.playerObject.layers3d
@@ -332,6 +356,7 @@ export class SkinViewer {
 
   private step(dt: number): void {
     this.driver.update(dt)
+    if (this.shadowMesh) updateShadow(this.shadowMesh, this.playerObject)
     this.placeNameTag()
     if (this.autoRotate && !(this.controls.enabled && this.dragging)) {
       this.playerWrapper.rotation.y += dt * this.autoRotateSpeed
@@ -605,6 +630,7 @@ export class SkinViewer {
     this.nameTag = null
     this.background = null
     this.driver.dispose()
+    this.shadow = false
     this.playerObject.dispose()
     this.renderer.dispose()
   }

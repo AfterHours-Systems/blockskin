@@ -1,6 +1,6 @@
 import { useFrame, useThree, type ThreeElements, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react'
-import { Vector2, Vector3 } from 'three'
+import { Vector2, Vector3, type Mesh } from 'three'
 import type { ModelType } from '../format/skin.js'
 import { PlayerDriver } from '../driver/PlayerDriver.js'
 import { DEFAULT_REACTIONS, type ReactionSet } from '../driver/reactions.js'
@@ -13,6 +13,7 @@ import {
   type PokePart,
 } from '../interaction/poke.js'
 import { PlayerObject, type BackEquipment } from '../model/PlayerObject.js'
+import { createShadow, disposeShadow, updateShadow } from '../model/shadow.js'
 import { EARS_EXTRA, NAME_TAG_GAP } from '../nametag/layout.js'
 import { NameTagObject } from '../nametag/NameTagObject.js'
 import type { ImageInput } from '../textures/input.js'
@@ -54,6 +55,8 @@ export interface MinecraftPlayerProps extends Omit<
   lookAtPointer?: boolean | 'window' | 'canvas'
   /** Draw the outer layer as small blocks, like the "3D Skin Layers" mod. Off by default. */
   layers3d?: boolean
+  /** A soft round shadow on the ground under the player. Off by default. */
+  shadow?: boolean
   onLoad?: (model: ModelType) => void
   onError?: (error: unknown) => void
   ref?: Ref<PlayerObject | null>
@@ -79,6 +82,7 @@ export function MinecraftPlayer({
   onPoke,
   lookAtPointer = false,
   layers3d = false,
+  shadow = false,
   onLoad,
   onError,
   ref,
@@ -197,6 +201,17 @@ export function MinecraftPlayer({
     if (player) player.layers3d = layers3d
   }, [player, layers3d])
 
+  const [shadowMesh, setShadowMesh] = useState<Mesh | null>(null)
+  useEffect(() => {
+    if (!shadow) return
+    const created = createShadow()
+    setShadowMesh(created)
+    return () => {
+      setShadowMesh(null)
+      disposeShadow(created)
+    }
+  }, [shadow])
+
   useEffect(() => {
     if (typeof nameTag !== 'string') {
       setTag(nameTag)
@@ -285,6 +300,7 @@ export function MinecraftPlayer({
     // A demand-driven canvas reports the whole idle time as the first frame's
     // delta; capped, a poke's flash and knockback still play out visibly.
     driver.update(Math.min(delta, 0.1))
+    if (shadowMesh) updateShadow(shadowMesh, player)
     // Reactions and transitions play out over several frames, which a
     // demand-driven canvas would otherwise not draw.
     if (driver.busy) invalidate()
@@ -303,6 +319,7 @@ export function MinecraftPlayer({
     >
       {player && <primitive object={player} />}
       {player && tag && <primitive object={tag} />}
+      {player && shadowMesh && <primitive object={shadowMesh} />}
     </group>
   )
 }
