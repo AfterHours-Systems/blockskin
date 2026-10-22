@@ -146,7 +146,11 @@ export class SkinObject extends Group {
     this._modelType = value
     this.rightArm.setLayout(partLayout('rightArm', value))
     this.leftArm.setLayout(partLayout('leftArm', value))
+    this.onModelTypeChange?.()
   }
+
+  /** Called after the arms are rebuilt for a new model type. */
+  onModelTypeChange: (() => void) | null = null
 
   get map(): Texture | null {
     return this._map
@@ -331,6 +335,12 @@ export class PlayerObject extends Group {
     this.elytra.visible = false
     this.ears.visible = false
     this.captureRestPose()
+    // However the model type changes, the arms' rest pose and any 3D layer
+    // follow it.
+    this.skin.onModelTypeChange = () => {
+      this.captureArmRest()
+      if (this._layers3d) this.rebuildOuterLayers()
+    }
   }
 
   /** Every transform an animation may move, the player itself included. */
@@ -410,7 +420,6 @@ export class PlayerObject extends Group {
           : detectModel(normalized.pixels)
     if (model !== this.skin.modelType) {
       this.skin.modelType = model
-      this.captureArmRest()
     }
     this.skin.map = this.replaceTexture('skin', normalized.pixels)
     this.skin.visible = true

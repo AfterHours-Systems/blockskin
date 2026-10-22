@@ -96,4 +96,15 @@ describe('PlayerObject.layers3d', () => {
       9, 9, 9,
     ])
   })
+
+  it('keeps the blocks when the model type is changed directly', () => {
+    const player = new PlayerObject()
+    player.applySkin(skinWithLayers())
+    player.layers3d = true
+    const classicWidth = bounds(player.skin.rightArm.outer.geometry).getSize(new Vector3()).x
+    player.skin.modelType = 'slim'
+    const arm = player.skin.rightArm.outer.geometry
+    expect(triangles(arm)).toBeGreaterThan(12)
+    expect(classicWidth - bounds(arm).getSize(new Vector3()).x).toBeCloseTo(1)
+  })
 })
