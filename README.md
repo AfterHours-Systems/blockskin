@@ -1,5 +1,8 @@
 # blockskin
 
+[![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+[![CI](https://github.com/afterhours-systems/blockskin/actions/workflows/ci.yml/badge.svg)](https://github.com/afterhours-systems/blockskin/actions/workflows/ci.yml)
+
 A Minecraft skin viewer for [three.js](https://threejs.org) and
 [React Three Fiber](https://r3f.docs.pmnd.rs), built on **your** three.
 
@@ -41,7 +44,7 @@ npm install react @react-three/fiber
 ## Plain three.js
 
 ```js
-import { SkinViewer, WalkingAnimation } from '@afterhours-systems/blockskin'
+import {SkinViewer, WalkingAnimation} from '@afterhours-systems/blockskin';
 
 const viewer = new SkinViewer({
   canvas: document.getElementById('skin'),
@@ -49,26 +52,28 @@ const viewer = new SkinViewer({
   height: 400,
   skin: 'https://example.com/skin.png',
   animation: new WalkingAnimation(),
-})
-viewer.autoRotate = true
+});
+viewer.autoRotate = true;
 
-await viewer.loadCape('https://example.com/cape.png', { backEquipment: 'elytra' })
-viewer.nameTag = 'Steve'
-viewer.loadPanorama('https://example.com/panorama.png')
-const png = await viewer.screenshot()
-viewer.dispose()
+await viewer.loadCape('https://example.com/cape.png', {
+  backEquipment: 'elytra',
+});
+viewer.nameTag = 'Steve';
+viewer.loadPanorama('https://example.com/panorama.png');
+const png = await viewer.screenshot();
+viewer.dispose();
 ```
 
 To use the model in a scene you already have, add a `PlayerObject` and feed it
 pixels yourself:
 
 ```js
-import { PlayerObject, readPixels } from '@afterhours-systems/blockskin'
+import {PlayerObject, readPixels} from '@afterhours-systems/blockskin';
 
-const player = new PlayerObject() // feet at the origin, 1 unit = 1 skin pixel
-player.applySkin(await readPixels('https://example.com/skin.png'))
-player.scale.setScalar(1 / 16) // one block per unit, if your scene uses metres
-scene.add(player)
+const player = new PlayerObject(); // feet at the origin, 1 unit = 1 skin pixel
+player.applySkin(await readPixels('https://example.com/skin.png'));
+player.scale.setScalar(1 / 16); // one block per unit, if your scene uses metres
+scene.add(player);
 ```
 
 ## React Three Fiber
@@ -76,9 +81,9 @@ scene.add(player)
 A complete viewer:
 
 ```jsx
-import { SkinViewer } from '@afterhours-systems/blockskin/react'
+import {SkinViewer} from '@afterhours-systems/blockskin/react';
 
-;<SkinViewer
+<SkinViewer
   width={300}
   height={400}
   skin="https://example.com/skin.png"
@@ -86,19 +91,23 @@ import { SkinViewer } from '@afterhours-systems/blockskin/react'
   autoRotate
   autoRotateSpeed={0.8}
   zoom={0.85}
-/>
+/>;
 ```
 
 Or the player alone, inside your own `<Canvas>`:
 
 ```jsx
-import { Canvas } from '@react-three/fiber'
-import { MinecraftPlayer } from '@afterhours-systems/blockskin/react'
+import {Canvas} from '@react-three/fiber';
+import {MinecraftPlayer} from '@afterhours-systems/blockskin/react';
 
-;<Canvas flat camera={{ position: [0, 16, 60] }}>
+<Canvas flat camera={{position: [0, 16, 60]}}>
   <ambientLight intensity={3} />
-  <MinecraftPlayer skin="https://example.com/skin.png" animation="run" cape={capeUrl} />
-</Canvas>
+  <MinecraftPlayer
+    skin="https://example.com/skin.png"
+    animation="run"
+    cape={capeUrl}
+  />
+</Canvas>;
 ```
 
 `MinecraftPlayer` takes the usual group props (`position`, `rotation`,
@@ -133,7 +142,7 @@ Every animation has `speed`, `paused` and `progress`, and
 head still unless you ask for a slow look around:
 
 ```js
-viewer.animation = new WalkingAnimation({ lookAround: true })
+viewer.animation = new WalkingAnimation({lookAround: true});
 // in React, pass an instance:
 // animation={useMemo(() => new WalkingAnimation({ lookAround: true }), [])}
 ```
@@ -142,8 +151,8 @@ Write your own as a function:
 
 ```js
 viewer.animation = new FunctionAnimation((player, progress) => {
-  player.skin.head.rotation.y = Math.sin(progress) * 0.5
-})
+  player.skin.head.rotation.y = Math.sin(progress) * 0.5;
+});
 // in React: <MinecraftPlayer animation={(player, progress) => { … }} />
 ```
 
@@ -160,7 +169,7 @@ a still frame.
   animation="random"
   autoRotate
   reactions
-  onPoke={(part) => console.log('poked', part)}
+  onPoke={part => console.log('poked', part)}
   lookAtPointer
   layers3d
   shadow
@@ -179,12 +188,12 @@ Pass your own pool, weights, durations or a seeded random source:
 ```js
 new RandomActions({
   actions: [
-    { name: 'idle', weight: 3 },
-    { name: 'fly', weight: 1 },
+    {name: 'idle', weight: 3},
+    {name: 'fly', weight: 1},
   ],
   minDuration: 2,
   maxDuration: 4,
-})
+});
 ```
 
 **Poke reactions.** With `reactions` on, a click or tap on the player (a drag
@@ -195,7 +204,7 @@ Five pokes within three seconds and the player crouch-spams at you.
 reaction for your own:
 
 ```js
-viewer.reactions = { ...DEFAULT_REACTIONS, head: myReaction, annoyed: null }
+viewer.reactions = {...DEFAULT_REACTIONS, head: myReaction, annoyed: null};
 // a Reaction is { duration, motion, apply(player, t, { part, away }) };
 // the built-ins are hurtReaction, shakeHeadReaction, waveBackReaction,
 // jumpReaction and crouchSpamReaction
@@ -207,8 +216,8 @@ animation and layers transitions, reactions and the look on top. Reach it as
 `MinecraftPlayer`'s `driverRef`, to poke or point the head from code:
 
 ```js
-driver.poke('head', away) // away: a unit vector pointing away from the viewer
-driver.lookAt(new Vector3(0, 30, 40)) // a world-space point; null lets go
+driver.poke('head', away); // away: a unit vector pointing away from the viewer
+driver.lookAt(new Vector3(0, 30, 40)); // a world-space point; null lets go
 ```
 
 **Head follows the pointer.** `lookAtPointer` (or `'window'`) turns the head
@@ -241,7 +250,7 @@ Name tags default to `48px Minecraft`. blockskin does not ship that font, so
 either load a font-face with that name yourself or pass another font:
 
 ```js
-new NameTagObject('Steve', { font: '48px monospace', textStyle: 'yellow' })
+new NameTagObject('Steve', {font: '48px monospace', textStyle: 'yellow'});
 ```
 
 ## Coming from skinview3d
@@ -266,11 +275,22 @@ differences:
 ## Development
 
 ```sh
-pnpm install
+pnpm install     # also installs the pre-commit hook
 pnpm test        # unit tests (Node)
 pnpm dev         # playground at http://localhost:5173
+pnpm lint        # eslint
+pnpm format      # prettier
 pnpm build
 ```
+
+The code follows the
+[Google TypeScript Style Guide](https://google.github.io/styleguide/tsguide.html):
+prettier and eslint are configured the way Google's
+[gts](https://github.com/google/gts) configures them, file names are
+`snake_case`, and exports are named. The pre-commit hook formats and lints
+staged files. CI runs formatting, lint, types, tests, the build and a check
+of the package contents on every push and pull request. Publishing a GitHub
+release publishes the package to npm.
 
 ## License
 

@@ -1,0 +1,8 @@
+pnpm exec lint-staged
+
+# A clone can add its own checks without committing them. Husky owns the
+# hooks path, so a hook in .git/hooks would otherwise never run.
+local_hook="$(git rev-parse --git-common-dir)/hooks/pre-commit.local"
+if [ -x "$local_hook" ]; then
+  "$local_hook" || exit 1
+fi
