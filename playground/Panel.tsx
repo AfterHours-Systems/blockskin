@@ -264,6 +264,22 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
         {check('autoRotate')}
         {check('controls')}
       </fieldset>
+      <button
+        type="button"
+        onClick={() =>
+          set({
+            skin: `name:${PRESETS[Math.floor(Math.random() * PRESETS.length)]}`,
+            animation: 'random',
+            autoRotate: true,
+            reactions: true,
+            lookAt: 'window',
+            layers3d: true,
+            shadow: true,
+          })
+        }
+      >
+        Showcase
+      </button>{' '}
       <button type="button" onClick={onScreenshot}>
         Screenshot
       </button>

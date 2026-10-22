@@ -19,6 +19,9 @@ and later.
 - Name tags
 - Animations: idle, walk, run, fly, swim, wave, crouch (optionally while hitting), hit, and your own
 - Upside-down players, the way the game draws Dinnerbone and Grumm
+- Beyond skinview3d: smooth transitions, random actions, poke reactions, a
+  head that follows the pointer, 3D skin layers, a ground shadow, `§` colour
+  codes in name tags and respect for reduced motion
 - A plain three.js viewer class, an R3F player for your own scene, and an R3F drop-in viewer
 
 ## Install
@@ -101,7 +104,8 @@ import { MinecraftPlayer } from '@afterhours-systems/blockskin/react'
 `MinecraftPlayer` takes the usual group props (`position`, `rotation`,
 `scale`) plus `skin`, `model`, `cape`, `backEquipment`, `ears`, `layers`,
 `nameTag`, `animation`, `animationSpeed`, `paused`, `upsideDown`, `onLoad` and
-`onError`. `backEquipment` is `'cape'`, `'elytra'` or `null` (none), and
+`onError`, plus the extras below (`transition`, `reactions`, `onPoke`,
+`lookAtPointer`, `layers3d`, `shadow`, `reducedMotion`). `backEquipment` is `'cape'`, `'elytra'` or `null` (none), and
 switching it never reloads the texture. Keep image props stable between renders: a new value reloads the
 texture. `SkinViewer` adds the viewer props (`fov`, `zoom`, `controls`,
 `autoRotate`, `background`, `backgroundImage`, `panorama`, `pixelRatio`,
@@ -143,6 +147,81 @@ viewer.animation = new FunctionAnimation((player, progress) => {
 // in React: <MinecraftPlayer animation={(player, progress) => { … }} />
 ```
 
+## Beyond skinview3d
+
+Every option below has the same name on the plain `SkinViewer`, the R3F
+`SkinViewer` and `MinecraftPlayer`. All are off by default except
+`transition`, `reducedMotion` and name-tag formatting, which change nothing in
+a still frame.
+
+```jsx
+<SkinViewer
+  skin={url}
+  animation="random"
+  autoRotate
+  reactions
+  onPoke={(part) => console.log('poked', part)}
+  lookAtPointer
+  layers3d
+  shadow
+/>
+```
+
+**Smooth transitions.** Switching animation blends over from the current pose
+instead of snapping: `transition={0.25}` seconds by default, `0` to snap.
+
+**Random actions.** `animation="random"` (or `new RandomActions()`) keeps
+picking something to do: idle, walk, run, crouch, wave or fly, for 3 to 6
+seconds each, never the same twice in a row. Flying puts on an elytra and
+takes it off again. Without a cape, blockskin draws its own elytra texture.
+Pass your own pool, weights, durations or a seeded random source:
+
+```js
+new RandomActions({
+  actions: [
+    { name: 'idle', weight: 3 },
+    { name: 'fly', weight: 1 },
+  ],
+  minDuration: 2,
+  maxDuration: 4,
+})
+```
+
+**Poke reactions.** With `reactions` on, a click or tap on the player (a drag
+never counts) plays the game's hurt flash and knockback, plus a reaction for
+the part that was hit: the head shakes "no", an arm waves back, a leg jumps.
+Five pokes within three seconds and the player crouch-spams at you.
+`onPoke(part)` fires for every poke, with reactions on or off. Swap any
+reaction for your own:
+
+```js
+viewer.reactions = { ...DEFAULT_REACTIONS, head: myReaction, annoyed: null }
+// a Reaction is { duration, motion, apply(player, t, { part, away }) }
+```
+
+**Head follows the pointer.** `lookAtPointer` (or `'window'`) turns the head
+towards the pointer anywhere on the page; `'canvas'` only over the canvas. It
+stays within natural limits, smooths its movement, and hands back to the
+animation two seconds after the pointer stops. Its listener is passive, so
+page scrolling is never blocked.
+
+**3D skin layers.** `layers3d` builds the outer layer (hats, jackets, hair)
+from small pixel blocks, like the "3D Skin Layers" mod.
+
+**Shadow.** `shadow` puts a soft round shadow on the ground under the player,
+which fades as it leaves the ground.
+
+**Formatted name tags.** Name tags read Minecraft's `§` codes: `§0`–`§f`
+colours, `§l` bold, `§o` italic, `§n` underline, `§m` strikethrough, `§k`
+scrambled, `§r` reset. They use the game's colours and text shadow, so
+`'§6[Admin] §rSteve'` works as on a server. Plain names render as before, and
+`formatting: false` turns this off.
+
+**Reduced motion.** `reducedMotion: 'system'` (the default) follows the
+user's "reduce motion" setting. When it's on, the player holds still,
+auto-rotate pauses and pokes only flash. Use `'always'` or `'never'` to force
+it either way.
+
 ## Name tags and fonts
 
 Name tags default to `48px Minecraft`. blockskin does not ship that font, so
@@ -169,6 +248,7 @@ differences:
 | `WalkingAnimation` turns the head                        | the head stays still unless `{ lookAround: true }`                                  |
 | `new WaveAnimation('right')`                             | the same, or `{ arm: 'right' }`; both default to the left arm                       |
 | `cameraLight` 0.6, fading with distance (barely visible) | `cameraLight` 0 by default with no falloff; try 0.3 to 1 for view-following shading |
+| switching animations snaps                               | blends over 0.25 s (`transition`)                                                   |
 
 ## Development
 
