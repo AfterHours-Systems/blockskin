@@ -163,6 +163,9 @@ export class PlayerDriver {
     const layered = this.from !== null || this.active.length > 0 || this.lookWeight > 0
     if (layered) capturePose(this.player, this.base)
 
+    // The look goes first so reactions, like a head shake, play on top of it.
+    if (this.lookWeight > 0 && this.lookTarget) this.applyLook(deltaSeconds)
+
     for (const entry of this.active) {
       entry.time += deltaSeconds
       const { reaction, ctx, time } = entry
@@ -173,8 +176,6 @@ export class PlayerDriver {
       blendFrom(this.beneath, weight)
     }
     this.active = this.active.filter((entry) => entry.time < entry.reaction.duration)
-
-    if (this.lookWeight > 0 && this.lookTarget) this.applyLook(deltaSeconds)
 
     if (this.from) {
       this.transitionTime += deltaSeconds

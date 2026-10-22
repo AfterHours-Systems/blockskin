@@ -1,4 +1,4 @@
-import { Vector3 } from 'three'
+import { Group, Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 import { WalkingAnimation } from '../animation/locomotion.js'
 import { RandomActions } from '../animation/RandomActions.js'
@@ -161,5 +161,28 @@ describe('poke reactions', () => {
     driver.dispose()
     expect(tint(driver.player)).toEqual([1, 1, 1])
     expect(driver.player.elytra.visible).toBe(false)
+  })
+})
+
+describe('reactions with the head following the pointer', () => {
+  it('still shakes the head when it is poked while looking at the pointer', () => {
+    const parent = new Group()
+    const driver = new PlayerDriver(new PlayerObject(), { transition: 0 })
+    parent.add(driver.player)
+    parent.updateMatrixWorld(true)
+    driver.reactions = DEFAULT_REACTIONS
+    const ahead = new Vector3(0, 28, 50)
+    for (let i = 0; i < 20; i++) {
+      driver.lookAt(ahead)
+      driver.update(0.05)
+    }
+    driver.poke('head', away)
+    let maxYaw = 0
+    for (let i = 0; i < 30; i++) {
+      driver.lookAt(ahead)
+      driver.update(0.02)
+      maxYaw = Math.max(maxYaw, Math.abs(driver.player.skin.head.rotation.y))
+    }
+    expect(maxYaw).toBeGreaterThan(0.3)
   })
 })

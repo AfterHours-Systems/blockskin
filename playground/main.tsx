@@ -42,6 +42,8 @@ declare global {
       camera(): Camera | undefined
       errors: string[]
       pokes: PokePart[]
+      /** Pointer-ups reaching the group around the player in own-canvas mode. */
+      ancestorUps: number
       loads: number
     }
   }
@@ -239,7 +241,12 @@ function PlayerView({ state, skin, cape, onError, onLoad, onPoke, apiRef }: View
     >
       <ambientLight intensity={3} />
       <CameraTap cameraRef={camera} />
-      <group position={[0, -16, 0]}>
+      <group
+        position={[0, -16, 0]}
+        onPointerUp={() => {
+          if (window.__playground) window.__playground.ancestorUps++
+        }}
+      >
         <MinecraftPlayer
           ref={player}
           skin={skin}
@@ -252,7 +259,7 @@ function PlayerView({ state, skin, cape, onError, onLoad, onPoke, apiRef }: View
           upsideDown={state.upsideDown}
           transition={state.transition}
           reactions={state.reactions}
-          onPoke={onPoke}
+          onPoke={state.quiet ? undefined : onPoke}
           lookAtPointer={state.lookAt === 'off' ? false : state.lookAt}
           layers3d={state.layers3d}
           shadow={state.shadow}
@@ -307,6 +314,7 @@ function App() {
       camera: () => apiRef.current?.camera?.() ?? apiRef.current?.viewer?.camera,
       errors: errors.current,
       pokes: pokes.current,
+      ancestorUps: window.__playground?.ancestorUps ?? 0,
       get loads() {
         return loads.current
       },

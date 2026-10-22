@@ -214,3 +214,40 @@ describe('PlayerObject', () => {
     }
   })
 })
+
+describe('PlayerObject.wearElytra with back-equipment changes during the flight', () => {
+  function capeMap(player: PlayerObject) {
+    return (player.cape.mesh.material as MeshStandardMaterial).map
+  }
+
+  it('keeps the elytra on when a cape loads mid-flight, then shows the cape after', () => {
+    const player = new PlayerObject()
+    const takeOff = player.wearElytra()
+    player.applyCape(transparentSkin(64, 32))
+    expect(player.elytra.visible).toBe(true)
+    expect(player.cape.visible).toBe(false)
+    // The elytra now wears the loaded cape's texture.
+    expect(capeMap(player)).not.toBeNull()
+    takeOff()
+    expect(player.backEquipment).toBe('cape')
+  })
+
+  it('remembers a back-equipment change made mid-flight', () => {
+    const player = new PlayerObject()
+    player.applyCape(transparentSkin(64, 32))
+    const takeOff = player.wearElytra()
+    player.backEquipment = null
+    expect(player.elytra.visible).toBe(true)
+    takeOff()
+    expect(player.backEquipment).toBeNull()
+  })
+
+  it('releases the drawn elytra texture when disposed mid-flight', () => {
+    const player = new PlayerObject()
+    player.wearElytra()
+    const drawn = capeMap(player)!
+    const dispose = vi.spyOn(drawn, 'dispose')
+    player.dispose()
+    expect(dispose).toHaveBeenCalled()
+  })
+})

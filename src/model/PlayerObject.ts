@@ -30,6 +30,13 @@ import { applyBoxUV, boxUV } from './uv.js'
 
 export type BackEquipment = 'cape' | 'elytra'
 
+interface WornElytra {
+  /** What to show once the elytra comes off. */
+  previous: BackEquipment | null
+  /** blockskin's drawn texture, when no cape is loaded. */
+  fallback: Texture | null
+}
+
 const WHITE = new Color(1, 1, 1)
 
 function box(
@@ -305,6 +312,8 @@ export class PlayerObject extends Group {
   private restPose = new Map<Group, Pose>()
   private skinPixels: { pixels: Pixels; scale: number } | null = null
   private _layers3d = false
+  // Set while wearElytra() is in effect.
+  private worn: WornElytra | null = null
 
   constructor() {
     super()
@@ -351,7 +360,13 @@ export class PlayerObject extends Group {
     return this._backEquipment
   }
 
+  /** While an elytra is worn for flying, a change is remembered and shown once it comes off. */
   set backEquipment(value: BackEquipment | null) {
+    if (this.worn) this.worn.previous = value
+    else this.showEquipment(value)
+  }
+
+  private showEquipment(value: BackEquipment | null): void {
     this._backEquipment = value
     this.cape.visible = value === 'cape'
     this.elytra.visible = value === 'elytra'
@@ -417,6 +432,21 @@ export class PlayerObject extends Group {
 
   applyCape(pixels: Pixels | null, opts: CapeApplyOptions = {}): void {
     const texture = this.replaceTexture('cape', pixels && normalizeCape(pixels).pixels)
+    const worn = this.worn
+    if (worn) {
+      // Mid-flight the elytra stays on and takes the new texture (or the
+      // drawn one again); what to show afterwards is remembered.
+      if (texture && worn.fallback) {
+        worn.fallback.dispose()
+        worn.fallback = null
+      }
+      if (!texture) worn.fallback ??= createPixelTexture(drawDefaultElytra())
+      this.capeMaterial.map = texture ?? worn.fallback
+      this.capeMaterial.needsUpdate = true
+      if (!texture) worn.previous = null
+      else if (opts.makeVisible !== false) worn.previous = opts.backEquipment ?? 'cape'
+      return
+    }
     this.capeMaterial.map = texture
     this.capeMaterial.needsUpdate = true
     if (!texture) this.backEquipment = null
@@ -463,28 +493,29 @@ export class PlayerObject extends Group {
    * more than once is harmless.
    */
   wearElytra(): () => void {
-    const previous = this.backEquipment
-    let fallback: Texture | null = null
+    if (this.worn) return () => {}
+    const worn: WornElytra = { previous: this._backEquipment, fallback: null }
     if (!this.hasCapeTexture) {
-      fallback = createPixelTexture(drawDefaultElytra())
-      this.capeMaterial.map = fallback
+      worn.fallback = createPixelTexture(drawDefaultElytra())
+      this.capeMaterial.map = worn.fallback
       this.capeMaterial.needsUpdate = true
     }
-    this.backEquipment = 'elytra'
-    let done = false
-    return () => {
-      if (done) return
-      done = true
-      if (fallback) {
-        // A cape loaded meanwhile replaced the map; leave that one alone.
-        if (this.capeMaterial.map === fallback) {
-          this.capeMaterial.map = this.textures.cape
-          this.capeMaterial.needsUpdate = true
-        }
-        fallback.dispose()
+    this.worn = worn
+    this.showEquipment('elytra')
+    return () => this.takeOffElytra(worn)
+  }
+
+  private takeOffElytra(worn: WornElytra): void {
+    if (this.worn !== worn) return
+    this.worn = null
+    if (worn.fallback) {
+      if (this.capeMaterial.map === worn.fallback) {
+        this.capeMaterial.map = this.textures.cape
+        this.capeMaterial.needsUpdate = true
       }
-      this.backEquipment = this.hasCapeTexture || previous === null ? previous : null
+      worn.fallback.dispose()
     }
+    this.showEquipment(this.hasCapeTexture ? worn.previous : null)
   }
 
   applyEars(pixels: Pixels | null, opts: EarsApplyOptions = {}): void {
@@ -511,6 +542,7 @@ export class PlayerObject extends Group {
   }
 
   dispose(): void {
+    if (this.worn) this.takeOffElytra(this.worn)
     this.skin.dispose()
     this.cape.mesh.geometry.dispose()
     this.elytra.dispose()

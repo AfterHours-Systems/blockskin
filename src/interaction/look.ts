@@ -33,12 +33,20 @@ export function pointerTarget(camera: Camera, ndc: Vector2, distance: number): V
   return raycaster.ray.at(distance, new Vector3())
 }
 
-/** A passive pointermove listener: it never blocks scrolling. Returns the cleanup. */
+/**
+ * Passive pointer listeners that report where the pointer is: on moves, and
+ * on presses, because a touch tap fires no move. They never block scrolling.
+ * Returns the cleanup.
+ */
 export function addPointerListener(
   target: Window | HTMLElement,
   onMove: (event: PointerEvent) => void,
 ): () => void {
   const handler = onMove as EventListener
   target.addEventListener('pointermove', handler, { passive: true })
-  return () => target.removeEventListener('pointermove', handler)
+  target.addEventListener('pointerdown', handler, { passive: true })
+  return () => {
+    target.removeEventListener('pointermove', handler)
+    target.removeEventListener('pointerdown', handler)
+  }
 }

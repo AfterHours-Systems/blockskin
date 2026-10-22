@@ -74,8 +74,11 @@ describe('addPointerListener', () => {
     const handler = () => {}
     const stop = addPointerListener(target as unknown as HTMLElement, handler)
     expect(target.addEventListener).toHaveBeenCalledWith('pointermove', handler, { passive: true })
+    // A touch tap fires no pointermove, so the last touch counts through pointerdown.
+    expect(target.addEventListener).toHaveBeenCalledWith('pointerdown', handler, { passive: true })
     stop()
     expect(target.removeEventListener).toHaveBeenCalledWith('pointermove', handler)
+    expect(target.removeEventListener).toHaveBeenCalledWith('pointerdown', handler)
   })
 })
 

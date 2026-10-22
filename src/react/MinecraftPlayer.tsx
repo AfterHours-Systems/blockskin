@@ -274,6 +274,10 @@ export function MinecraftPlayer({
   const userPointerDown = onPointerDown as PointerHandler
   const userPointerUp = onPointerUp as PointerHandler
 
+  // Without reactions or an onPoke listener the player stays out of event
+  // handling entirely, as in v1: no raycasts on its behalf, nothing stopped.
+  const pokeable = reactions !== false || onPoke !== undefined
+
   const handlePointerDown = (event: ThreeEvent<PointerEvent>) => {
     userPointerDown?.(event)
     const { clientX, clientY, timeStamp } = event.nativeEvent
@@ -326,8 +330,8 @@ export function MinecraftPlayer({
     <group
       {...groupProps}
       visible={ready && group.visible !== false}
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
+      onPointerDown={pokeable ? handlePointerDown : userPointerDown}
+      onPointerUp={pokeable ? handlePointerUp : userPointerUp}
     >
       {player && <primitive object={player} />}
       {player && tag && <primitive object={tag} />}

@@ -21,6 +21,8 @@ export interface PlaygroundState {
   layers3d: boolean
   shadow: boolean
   reducedMotion: 'system' | 'always' | 'never'
+  /** Own-canvas mode only: pass no onPoke, as an app that ignores pokes would. */
+  quiet: boolean
   paused: boolean
   upsideDown: boolean
   /** '' for transparent. */
@@ -50,6 +52,7 @@ export const DEFAULT_STATE: PlaygroundState = {
   layers3d: false,
   shadow: false,
   reducedMotion: 'system',
+  quiet: false,
   paused: false,
   upsideDown: false,
   background: '',

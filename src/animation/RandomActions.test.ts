@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { opaqueSkin } from '../format/testPixels.js'
 import { PlayerDriver } from '../driver/PlayerDriver.js'
 import { PlayerObject } from '../model/PlayerObject.js'
+import { WalkingAnimation } from './locomotion.js'
 import { createAnimation } from './index.js'
 import {
   DEFAULT_RANDOM_ACTIONS,
@@ -134,5 +135,19 @@ describe('RandomActions', () => {
 
   it("is created by the name 'random'", () => {
     expect(createAnimation('random')).toBeInstanceOf(RandomActions)
+  })
+
+  it('starts fresh, with its equipment, when re-used after being switched away mid-flight', () => {
+    const driver = new PlayerDriver(new PlayerObject())
+    const random = new RandomActions({ actions: flyFirst, random: () => 0 })
+    driver.animation = random
+    driver.update(0.5)
+    expect(random.current).toBe('fly')
+    driver.animation = new WalkingAnimation()
+    driver.update(0.2)
+    driver.animation = random
+    driver.update(0.1)
+    if (random.current === 'fly') expect(driver.player.elytra.visible).toBe(true)
+    else expect(driver.player.rotation.x).toBeCloseTo(0)
   })
 })

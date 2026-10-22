@@ -114,5 +114,10 @@ export class RandomActions extends PlayerAnimation {
     this.takeOff?.()
     this.takeOff = null
     this.action?.stop(player)
+    // If this instance is used again, it starts a fresh action (putting on
+    // whatever that needs) rather than resuming one whose equipment is off.
+    this.action = null
+    this.remaining = 0
+    this._current = null
   }
 }

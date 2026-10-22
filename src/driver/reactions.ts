@@ -34,7 +34,8 @@ export const shakeHead: Reaction = {
   motion: true,
   apply(player, t) {
     const progress = t / 0.6
-    player.skin.head.rotation.y = 0.5 * Math.sin(progress * Math.PI * 2 * 3) * (1 - progress)
+    // Added to whatever the head is doing, so it shakes while looking around.
+    player.skin.head.rotation.y += 0.5 * Math.sin(progress * Math.PI * 2 * 3) * (1 - progress)
   },
 }
 
