@@ -23,7 +23,9 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "dev": "vite",
+    "preview": "vite preview"
   },
   "peerDependencies": {
     "@react-three/fiber": "^9.0.0",
