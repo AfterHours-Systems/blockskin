@@ -27,8 +27,8 @@ import { watchReducedMotion, type ReducedMotionMode } from '../interaction/motio
 import {
   awayFromCamera,
   findPokedPart,
-  isPoke,
-  type PointerSample,
+  createPokeTracker,
+  pokePointer,
   type PokePart,
 } from '../interaction/poke.js'
 import { PlayerObject, type BackEquipment } from '../model/PlayerObject.js'
@@ -207,23 +207,25 @@ export class SkinViewer {
     this.reducedMotion = options.reducedMotion ?? 'system'
     this.canvas.addEventListener('pointerdown', this.onPointerDown)
     this.canvas.addEventListener('pointerup', this.onPointerUp)
+    this.canvas.addEventListener('pointercancel', this.onPointerCancel)
     this.canvas.addEventListener('webglcontextlost', this.onContextLost)
     this.canvas.addEventListener('webglcontextrestored', this.onContextRestored)
     this.renderPaused = options.renderPaused ?? false
   }
 
-  private pointerDown: PointerSample | null = null
+  private readonly pokes = createPokeTracker()
   private readonly raycaster = new Raycaster()
 
   private readonly onPointerDown = (event: PointerEvent) => {
-    this.pointerDown = { x: event.clientX, y: event.clientY, time: event.timeStamp }
+    this.pokes.down(pokePointer(event))
+  }
+
+  private readonly onPointerCancel = (event: PointerEvent) => {
+    this.pokes.cancel(event.pointerId)
   }
 
   private readonly onPointerUp = (event: PointerEvent) => {
-    const down = this.pointerDown
-    this.pointerDown = null
-    if (!down || !isPoke(down, { x: event.clientX, y: event.clientY, time: event.timeStamp }))
-      return
+    if (!this.pokes.up(pokePointer(event))) return
     const rect = this.canvas.getBoundingClientRect()
     const ndc = new Vector2(
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -647,6 +649,7 @@ export class SkinViewer {
     this.stopLooking = null
     this.canvas.removeEventListener('pointerdown', this.onPointerDown)
     this.canvas.removeEventListener('pointerup', this.onPointerUp)
+    this.canvas.removeEventListener('pointercancel', this.onPointerCancel)
     this.canvas.removeEventListener('webglcontextlost', this.onContextLost)
     this.canvas.removeEventListener('webglcontextrestored', this.onContextRestored)
     this.pixelRatioQuery?.removeEventListener('change', this.onPixelRatioChange)

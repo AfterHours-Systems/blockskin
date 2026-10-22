@@ -2,7 +2,7 @@ import { Group, Mesh, Object3D, PerspectiveCamera, Raycaster, Vector3 } from 'th
 import { describe, expect, it } from 'vitest'
 import { opaqueSkin } from '../format/testPixels.js'
 import { PlayerObject } from '../model/PlayerObject.js'
-import { awayFromCamera, findPokedPart, isPoke, partFromObject } from './poke.js'
+import { awayFromCamera, createPokeTracker, findPokedPart, isPoke, partFromObject } from './poke.js'
 
 describe('isPoke', () => {
   const down = { x: 100, y: 100, time: 1000 }
@@ -98,5 +98,69 @@ describe('awayFromCamera', () => {
     // World −z is the parent's +x after a quarter turn about y.
     expect(away.x).toBeCloseTo(1)
     expect(away.z).toBeCloseTo(0)
+  })
+})
+
+describe('createPokeTracker', () => {
+  const press = (pointerId: number, x: number, y: number, time: number, button = 0) => ({
+    pointerId,
+    button,
+    x,
+    y,
+    time,
+  })
+
+  it('reports a short, still primary press as a poke', () => {
+    const tracker = createPokeTracker()
+    tracker.down(press(1, 10, 10, 0))
+    expect(tracker.up(press(1, 12, 11, 100))).toBe(true)
+  })
+
+  it('ignores secondary buttons', () => {
+    const tracker = createPokeTracker()
+    tracker.down(press(1, 10, 10, 0, 2))
+    expect(tracker.up(press(1, 10, 10, 50, 2))).toBe(false)
+  })
+
+  it('ignores a two-finger tap', () => {
+    const tracker = createPokeTracker()
+    tracker.down(press(1, 10, 10, 0))
+    tracker.down(press(2, 60, 10, 20))
+    expect(tracker.up(press(2, 60, 10, 80))).toBe(false)
+    expect(tracker.up(press(1, 10, 10, 90))).toBe(false)
+  })
+
+  it('pairs ups with their own pointer', () => {
+    const tracker = createPokeTracker()
+    tracker.down(press(1, 10, 10, 0))
+    expect(tracker.up(press(7, 10, 10, 50))).toBe(false)
+    expect(tracker.up(press(1, 10, 10, 60))).toBe(true)
+  })
+
+  it('forgets a cancelled pointer', () => {
+    const tracker = createPokeTracker()
+    tracker.down(press(1, 10, 10, 0))
+    tracker.cancel(1)
+    expect(tracker.up(press(1, 10, 10, 50))).toBe(false)
+  })
+
+  it('works again after a gesture ends', () => {
+    const tracker = createPokeTracker()
+    tracker.down(press(1, 10, 10, 0))
+    tracker.down(press(2, 60, 10, 20))
+    tracker.up(press(2, 60, 10, 80))
+    tracker.up(press(1, 10, 10, 90))
+    tracker.down(press(3, 10, 10, 200))
+    expect(tracker.up(press(3, 10, 10, 250))).toBe(true)
+  })
+
+  it('forgets a press whose release never arrived', () => {
+    // R3F only delivers a release over the player; a drag that ends beside
+    // it leaves its press behind, which must not turn later taps into a
+    // "two-finger" gesture.
+    const tracker = createPokeTracker()
+    tracker.down(press(1, 10, 10, 0))
+    tracker.down(press(2, 10, 10, 1000))
+    expect(tracker.up(press(2, 10, 10, 1050))).toBe(true)
   })
 })

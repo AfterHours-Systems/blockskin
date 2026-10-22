@@ -8,9 +8,9 @@ import { addPointerListener, pointerTarget } from '../interaction/look.js'
 import { watchReducedMotion, type ReducedMotionMode } from '../interaction/motion.js'
 import {
   awayFromCamera,
-  isPoke,
+  createPokeTracker,
+  pokePointer,
   partFromObject,
-  type PointerSample,
   type PokePart,
 } from '../interaction/poke.js'
 import { PlayerObject, type BackEquipment } from '../model/PlayerObject.js'
@@ -108,7 +108,7 @@ export function MinecraftPlayer({
   const invalidate = useThree((state) => state.invalidate)
   const camera = useThree((state) => state.camera)
   const domElement = useThree((state) => state.gl.domElement)
-  const pointerDown = useRef<PointerSample | null>(null)
+  const pokes = useMemo(() => createPokeTracker(), [])
   const capeLoaded = useRef(false)
   const callbacks = useRef({ onLoad, onError, backEquipment, onPoke })
   callbacks.current = { onLoad, onError, backEquipment, onPoke }
@@ -269,10 +269,11 @@ export function MinecraftPlayer({
   }, [driver, reactions])
 
   type PointerHandler = ((event: ThreeEvent<PointerEvent>) => void) | undefined
-  const { onPointerDown, onPointerUp, ...groupProps } = group
+  const { onPointerDown, onPointerUp, onPointerCancel, ...groupProps } = group
   // R3F types its event props as Readonly functions, which TypeScript won't call.
   const userPointerDown = onPointerDown as PointerHandler
   const userPointerUp = onPointerUp as PointerHandler
+  const userPointerCancel = onPointerCancel as PointerHandler
 
   // Without reactions or an onPoke listener the player stays out of event
   // handling entirely, as in v1: no raycasts on its behalf, nothing stopped.
@@ -280,22 +281,23 @@ export function MinecraftPlayer({
 
   const handlePointerDown = (event: ThreeEvent<PointerEvent>) => {
     userPointerDown?.(event)
-    const { clientX, clientY, timeStamp } = event.nativeEvent
-    pointerDown.current = { x: clientX, y: clientY, time: timeStamp }
+    pokes.down(pokePointer(event.nativeEvent))
+  }
+
+  const handlePointerCancel = (event: ThreeEvent<PointerEvent>) => {
+    userPointerCancel?.(event)
+    pokes.cancel(event.nativeEvent.pointerId)
   }
 
   const handlePointerUp = (event: ThreeEvent<PointerEvent>) => {
     userPointerUp?.(event)
-    const down = pointerDown.current
-    const { clientX, clientY, timeStamp } = event.nativeEvent
-    if (!player || !driver || !down) return
-    if (!isPoke(down, { x: clientX, y: clientY, time: timeStamp })) return
+    if (!player || !driver) return
     // R3F calls this for each object along the ray, nearest first; the first
-    // one that belongs to a visible part takes the poke.
+    // one that belongs to a visible part settles whether this was a poke.
     const part = partFromObject(event.object)
     if (!part) return
+    if (!pokes.up(pokePointer(event.nativeEvent))) return
     event.stopPropagation()
-    pointerDown.current = null
     callbacks.current.onPoke?.(part)
     driver.poke(part, awayFromCamera(camera, player))
     invalidate()
@@ -332,6 +334,7 @@ export function MinecraftPlayer({
       visible={ready && group.visible !== false}
       onPointerDown={pokeable ? handlePointerDown : userPointerDown}
       onPointerUp={pokeable ? handlePointerUp : userPointerUp}
+      onPointerCancel={pokeable ? handlePointerCancel : userPointerCancel}
     >
       {player && <primitive object={player} />}
       {player && tag && <primitive object={tag} />}
