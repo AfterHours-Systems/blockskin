@@ -1,38 +1,38 @@
-import type { AnimationName, ImageInput, PartName } from '../src/index.js'
-import { debugCape, debugEars, debugSkin } from './fixtures.js'
+import type {AnimationName, ImageInput, PartName} from '../src/index.js';
+import {debugCape, debugEars, debugSkin} from './fixtures.js';
 
 export interface PlaygroundState {
   /** 'player' is MinecraftPlayer in its own <Canvas frameloop="demand">. */
-  mode: 'react' | 'vanilla' | 'player'
+  mode: 'react' | 'vanilla' | 'player';
   /** 'debug', 'debug-slim', 'debug-legacy', 'debug-hd', 'name:<player>' or a URL. */
-  skin: string
-  model: 'auto-detect' | 'classic' | 'slim'
+  skin: string;
+  model: 'auto-detect' | 'classic' | 'slim';
   /** Hidden layers as 'head.outer', 'body.inner', … */
-  hidden: string[]
-  back: 'none' | 'cape' | 'elytra'
-  capeFormat: '64x32' | '22x17' | '46x22'
-  ears: 'off' | 'skin' | 'standalone'
-  nameTag: string
-  animation: AnimationName | 'none'
-  speed: number
-  transition: number
-  reactions: boolean
-  lookAt: 'off' | 'window' | 'canvas'
-  layers3d: boolean
-  shadow: boolean
-  reducedMotion: 'system' | 'always'
+  hidden: string[];
+  back: 'none' | 'cape' | 'elytra';
+  capeFormat: '64x32' | '22x17' | '46x22';
+  ears: 'off' | 'skin' | 'standalone';
+  nameTag: string;
+  animation: AnimationName | 'none';
+  speed: number;
+  transition: number;
+  reactions: boolean;
+  lookAt: 'off' | 'window' | 'canvas';
+  layers3d: boolean;
+  shadow: boolean;
+  reducedMotion: 'system' | 'always';
   /** Own-canvas mode only: pass no onPoke, as an app that ignores pokes would. */
-  quiet: boolean
-  paused: boolean
-  upsideDown: boolean
+  quiet: boolean;
+  paused: boolean;
+  upsideDown: boolean;
   /** '' for transparent. */
-  background: string
-  panorama: boolean
-  cameraLight: number
-  fov: number
-  zoom: number
-  autoRotate: boolean
-  controls: boolean
+  background: string;
+  panorama: boolean;
+  cameraLight: number;
+  fov: number;
+  zoom: number;
+  autoRotate: boolean;
+  controls: boolean;
 }
 
 export const DEFAULT_STATE: PlaygroundState = {
@@ -62,16 +62,16 @@ export const DEFAULT_STATE: PlaygroundState = {
   zoom: 0.85,
   autoRotate: true,
   controls: true,
-}
+};
 
 /** Reads overrides from the query string, e.g. ?mode=vanilla&animation=none. */
 export function stateFromUrl(search: string): PlaygroundState {
-  const params = new URLSearchParams(search)
-  const state: PlaygroundState = { ...DEFAULT_STATE, hidden: [] }
+  const params = new URLSearchParams(search);
+  const state: PlaygroundState = {...DEFAULT_STATE, hidden: []};
   for (const [key, raw] of params) {
-    if (!(key in DEFAULT_STATE)) continue
-    const k = key as keyof PlaygroundState
-    const current = DEFAULT_STATE[k]
+    if (!(key in DEFAULT_STATE)) continue;
+    const k = key as keyof PlaygroundState;
+    const current = DEFAULT_STATE[k];
     const value =
       typeof current === 'number'
         ? Number(raw)
@@ -79,39 +79,50 @@ export function stateFromUrl(search: string): PlaygroundState {
           ? raw === 'true' || raw === '1'
           : Array.isArray(current)
             ? raw.split(',').filter(Boolean)
-            : raw
-    Object.assign(state, { [k]: value })
+            : raw;
+    Object.assign(state, {[k]: value});
   }
-  return state
+  return state;
 }
 
-export const PRESETS = ['Notch', 'jeb_', 'Technoblade', 'deadmau5', 'MHF_Alex', 'MHF_Steve']
+export const PRESETS = [
+  'Notch',
+  'jeb_',
+  'Technoblade',
+  'deadmau5',
+  'MHF_Alex',
+  'MHF_Steve',
+];
 
 export function skinInput(skin: string, file: string | null): ImageInput {
-  if (skin === 'file' && file) return file
-  if (skin === 'debug') return debugSkin()
-  if (skin === 'debug-slim') return debugSkin({ slim: true })
-  if (skin === 'debug-legacy') return debugSkin({ legacy: true })
-  if (skin === 'debug-hd') return debugSkin({ scale: 4 })
+  if (skin === 'file' && file) return file;
+  if (skin === 'debug') return debugSkin();
+  if (skin === 'debug-slim') return debugSkin({slim: true});
+  if (skin === 'debug-legacy') return debugSkin({legacy: true});
+  if (skin === 'debug-hd') return debugSkin({scale: 4});
   if (skin.startsWith('name:'))
-    return `https://mc-heads.net/skin/${encodeURIComponent(skin.slice(5))}`
-  return skin
+    return `https://mc-heads.net/skin/${encodeURIComponent(skin.slice(5))}`;
+  return skin;
 }
 
-export function capeInput(state: Pick<PlaygroundState, 'back' | 'capeFormat'>): ImageInput | null {
-  return state.back === 'none' ? null : debugCape(state.capeFormat)
+export function capeInput(
+  state: Pick<PlaygroundState, 'back' | 'capeFormat'>,
+): ImageInput | null {
+  return state.back === 'none' ? null : debugCape(state.capeFormat);
 }
 
 export function earsInput(ears: PlaygroundState['ears']) {
-  if (ears === 'standalone') return { textureType: 'standalone' as const, source: debugEars() }
-  return ears === 'skin'
+  if (ears === 'standalone')
+    return {textureType: 'standalone' as const, source: debugEars()};
+  return ears === 'skin';
 }
 
 export function layersFromHidden(hidden: string[]) {
-  const layers: Partial<Record<PartName, { inner?: boolean; outer?: boolean }>> = {}
+  const layers: Partial<Record<PartName, {inner?: boolean; outer?: boolean}>> =
+    {};
   for (const entry of hidden) {
-    const [part, layer] = entry.split('.') as [PartName, 'inner' | 'outer']
-    layers[part] = { ...layers[part], [layer]: false }
+    const [part, layer] = entry.split('.') as [PartName, 'inner' | 'outer'];
+    layers[part] = {...layers[part], [layer]: false};
   }
-  return layers
+  return layers;
 }

@@ -8,5 +8,9 @@
     "types": []
   },
   "include": ["src"],
-  "exclude": ["src/**/*.test.ts", "src/**/testPixels.ts", "src/**/testProbe.ts"]
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/test_pixels.ts",
+    "src/**/test_probe.ts"
+  ]
 }

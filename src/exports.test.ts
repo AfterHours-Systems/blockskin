@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import * as api from './index.js'
+import {describe, expect, it} from 'vitest';
+import * as api from './index.js';
 
 describe('public API', () => {
   it('keeps internal helpers out of the package root', () => {
@@ -15,13 +15,19 @@ describe('public API', () => {
       'pokePointer',
       'createPokeTracker',
     ]) {
-      expect(api, name).not.toHaveProperty(name)
+      expect(api, name).not.toHaveProperty(name);
     }
-  })
+  });
 
   it('names the built-in reactions so they read as reactions', () => {
-    for (const name of ['hurt', 'jump', 'waveBack', 'crouchSpam', 'shakeHead']) {
-      expect(api, name).not.toHaveProperty(name)
+    for (const name of [
+      'hurt',
+      'jump',
+      'waveBack',
+      'crouchSpam',
+      'shakeHead',
+    ]) {
+      expect(api, name).not.toHaveProperty(name);
     }
     for (const name of [
       'hurtReaction',
@@ -33,7 +39,7 @@ describe('public API', () => {
       'PlayerDriver',
       'RandomActions',
     ]) {
-      expect(api, name).toHaveProperty(name)
+      expect(api, name).toHaveProperty(name);
     }
-  })
-})
+  });
+});

@@ -3,10 +3,13 @@
  * motion for everyone. There is deliberately no way to override a user who
  * asked for less motion.
  */
-export type ReducedMotionMode = 'system' | 'always'
+export type ReducedMotionMode = 'system' | 'always';
 
-export function isReduced(mode: ReducedMotionMode, systemPrefersReduced: boolean): boolean {
-  return mode === 'always' || (mode === 'system' && systemPrefersReduced)
+export function isReduced(
+  mode: ReducedMotionMode,
+  systemPrefersReduced: boolean,
+): boolean {
+  return mode === 'always' || (mode === 'system' && systemPrefersReduced);
 }
 
 /**
@@ -18,12 +21,12 @@ export function watchReducedMotion(
   onChange: (reduced: boolean) => void,
 ): () => void {
   if (mode !== 'system' || typeof matchMedia !== 'function') {
-    onChange(isReduced(mode, false))
-    return () => {}
+    onChange(isReduced(mode, false));
+    return () => {};
   }
-  const query = matchMedia('(prefers-reduced-motion: reduce)')
-  const listener = (event: { matches: boolean }) => onChange(event.matches)
-  onChange(query.matches)
-  query.addEventListener('change', listener)
-  return () => query.removeEventListener('change', listener)
+  const query = matchMedia('(prefers-reduced-motion: reduce)');
+  const listener = (event: {matches: boolean}) => onChange(event.matches);
+  onChange(query.matches);
+  query.addEventListener('change', listener);
+  return () => query.removeEventListener('change', listener);
 }

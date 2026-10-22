@@ -1,21 +1,28 @@
-import type { ChangeEvent } from 'react'
-import { ANIMATION_NAMES, PART_NAMES } from '../src/index.js'
-import { PRESETS, type PlaygroundState } from './state.js'
+import type {ChangeEvent} from 'react';
+import {ANIMATION_NAMES, PART_NAMES} from '../src/index.js';
+import {PRESETS, type PlaygroundState} from './state.js';
 
 interface PanelProps {
-  state: PlaygroundState
-  set: (patch: Partial<PlaygroundState>) => void
-  onFile: (url: string) => void
-  onScreenshot: () => void
-  error: string
-  pokes: string[]
+  state: PlaygroundState;
+  set: (patch: Partial<PlaygroundState>) => void;
+  onFile: (url: string) => void;
+  onScreenshot: () => void;
+  error: string;
+  pokes: string[];
 }
 
-export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelProps) {
+export function Panel({
+  state,
+  set,
+  onFile,
+  onScreenshot,
+  error,
+  pokes,
+}: PanelProps) {
   const num =
     (key: 'fov' | 'zoom' | 'speed' | 'cameraLight' | 'transition') =>
     (e: ChangeEvent<HTMLInputElement>) =>
-      set({ [key]: Number(e.target.value) })
+      set({[key]: Number(e.target.value)});
   const check = (
     key:
       | 'paused'
@@ -31,27 +38,27 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
       <input
         type="checkbox"
         checked={state[key]}
-        onChange={(e) => set({ [key]: e.target.checked })}
+        onChange={e => set({[key]: e.target.checked})}
       />{' '}
       {key}
     </label>
-  )
+  );
   const toggleLayer = (id: string) =>
     set({
       hidden: state.hidden.includes(id)
-        ? state.hidden.filter((h) => h !== id)
+        ? state.hidden.filter(h => h !== id)
         : [...state.hidden, id],
-    })
+    });
 
   return (
-    <form onSubmit={(e) => e.preventDefault()} style={{ width: 320 }}>
+    <form onSubmit={e => e.preventDefault()} style={{width: 320}}>
       <fieldset>
         <legend>Viewer</legend>
         <label>
           <input
             type="radio"
             checked={state.mode === 'react'}
-            onChange={() => set({ mode: 'react' })}
+            onChange={() => set({mode: 'react'})}
           />{' '}
           R3F
         </label>
@@ -59,7 +66,7 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
           <input
             type="radio"
             checked={state.mode === 'vanilla'}
-            onChange={() => set({ mode: 'vanilla' })}
+            onChange={() => set({mode: 'vanilla'})}
           />{' '}
           vanilla SkinViewer
         </label>
@@ -67,19 +74,19 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
           <input
             type="radio"
             checked={state.mode === 'player'}
-            onChange={() => set({ mode: 'player' })}
+            onChange={() => set({mode: 'player'})}
           />{' '}
           MinecraftPlayer, own canvas (demand)
         </label>
       </fieldset>
       <fieldset>
         <legend>Skin</legend>
-        <select value={state.skin} onChange={(e) => set({ skin: e.target.value })}>
+        <select value={state.skin} onChange={e => set({skin: e.target.value})}>
           <option value="debug">debug (classic)</option>
           <option value="debug-slim">debug (slim)</option>
           <option value="debug-legacy">debug (legacy 64×32)</option>
           <option value="debug-hd">debug (HD 256)</option>
-          {PRESETS.map((name) => (
+          {PRESETS.map(name => (
             <option key={name} value={`name:${name}`}>
               {name}
             </option>
@@ -89,9 +96,9 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
         <input
           type="file"
           accept="image/png"
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) onFile(URL.createObjectURL(file))
+          onChange={e => {
+            const file = e.target.files?.[0];
+            if (file) onFile(URL.createObjectURL(file));
           }}
         />
         <label>
@@ -99,12 +106,16 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
           <input
             defaultValue=""
             placeholder="https://…"
-            onKeyDown={(e) => e.key === 'Enter' && set({ skin: e.currentTarget.value })}
+            onKeyDown={e =>
+              e.key === 'Enter' && set({skin: e.currentTarget.value})
+            }
           />
         </label>
         <select
           value={state.model}
-          onChange={(e) => set({ model: e.target.value as PlaygroundState['model'] })}
+          onChange={e =>
+            set({model: e.target.value as PlaygroundState['model']})
+          }
         >
           <option value="auto-detect">auto-detect</option>
           <option value="classic">classic</option>
@@ -113,13 +124,13 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
       </fieldset>
       <fieldset>
         <legend>Layers</legend>
-        {PART_NAMES.map((part) => (
+        {PART_NAMES.map(part => (
           <div key={part}>
             {part}{' '}
-            {(['inner', 'outer'] as const).map((layer) => {
-              const id = `${part}.${layer}`
+            {(['inner', 'outer'] as const).map(layer => {
+              const id = `${part}.${layer}`;
               return (
-                <label key={id} style={{ display: 'inline' }}>
+                <label key={id} style={{display: 'inline'}}>
                   <input
                     type="checkbox"
                     checked={!state.hidden.includes(id)}
@@ -127,7 +138,7 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
                   />{' '}
                   {layer}{' '}
                 </label>
-              )
+              );
             })}
           </div>
         ))}
@@ -136,7 +147,7 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
         <legend>Extras</legend>
         <select
           value={state.back}
-          onChange={(e) => set({ back: e.target.value as PlaygroundState['back'] })}
+          onChange={e => set({back: e.target.value as PlaygroundState['back']})}
         >
           <option value="none">no back equipment</option>
           <option value="cape">cape</option>
@@ -144,7 +155,9 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
         </select>
         <select
           value={state.capeFormat}
-          onChange={(e) => set({ capeFormat: e.target.value as PlaygroundState['capeFormat'] })}
+          onChange={e =>
+            set({capeFormat: e.target.value as PlaygroundState['capeFormat']})
+          }
         >
           <option value="64x32">cape 64×32</option>
           <option value="22x17">cape 22×17</option>
@@ -152,7 +165,7 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
         </select>
         <select
           value={state.ears}
-          onChange={(e) => set({ ears: e.target.value as PlaygroundState['ears'] })}
+          onChange={e => set({ears: e.target.value as PlaygroundState['ears']})}
         >
           <option value="off">no ears</option>
           <option value="skin">ears from skin</option>
@@ -160,15 +173,20 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
         </select>
         <label>
           name tag{' '}
-          <input value={state.nameTag} onChange={(e) => set({ nameTag: e.target.value })} />
+          <input
+            value={state.nameTag}
+            onChange={e => set({nameTag: e.target.value})}
+          />
         </label>
         {check('upsideDown')}
         {check('layers3d')}
         {check('shadow')}
         <select
           value={state.reducedMotion}
-          onChange={(e) =>
-            set({ reducedMotion: e.target.value as PlaygroundState['reducedMotion'] })
+          onChange={e =>
+            set({
+              reducedMotion: e.target.value as PlaygroundState['reducedMotion'],
+            })
           }
         >
           <option value="system">reduced motion: system</option>
@@ -179,10 +197,12 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
         <legend>Animation</legend>
         <select
           value={state.animation}
-          onChange={(e) => set({ animation: e.target.value as PlaygroundState['animation'] })}
+          onChange={e =>
+            set({animation: e.target.value as PlaygroundState['animation']})
+          }
         >
           <option value="none">none</option>
-          {ANIMATION_NAMES.map((name) => (
+          {ANIMATION_NAMES.map(name => (
             <option key={name}>{name}</option>
           ))}
         </select>
@@ -213,7 +233,9 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
         {check('reactions')}
         <select
           value={state.lookAt}
-          onChange={(e) => set({ lookAt: e.target.value as PlaygroundState['lookAt'] })}
+          onChange={e =>
+            set({lookAt: e.target.value as PlaygroundState['lookAt']})
+          }
         >
           <option value="off">head: animation only</option>
           <option value="window">head follows pointer (page)</option>
@@ -228,12 +250,19 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
           <input
             value={state.background}
             placeholder="transparent"
-            onChange={(e) => set({ background: e.target.value })}
+            onChange={e => set({background: e.target.value})}
           />
         </label>
         {check('panorama')}
         <label>
-          fov <input type="range" min={20} max={110} value={state.fov} onChange={num('fov')} />{' '}
+          fov{' '}
+          <input
+            type="range"
+            min={20}
+            max={110}
+            value={state.fov}
+            onChange={num('fov')}
+          />{' '}
           {state.fov}
         </label>
         <label>
@@ -284,5 +313,5 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
       </button>
       <div id="error">{error}</div>
     </form>
-  )
+  );
 }

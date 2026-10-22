@@ -1,7 +1,9 @@
 export interface LatestWins {
-  <T>(task: (signal: AbortSignal) => Promise<T>): Promise<{ stale: boolean; value?: T }>
+  <T>(
+    task: (signal: AbortSignal) => Promise<T>,
+  ): Promise<{stale: boolean; value?: T}>;
   /** Supersedes whatever is pending without starting anything new. */
-  cancel(): void
+  cancel(): void;
 }
 
 /**
@@ -10,23 +12,23 @@ export interface LatestWins {
  * (resolve or reject) is reported as stale instead of being applied.
  */
 export function createLatestWins(): LatestWins {
-  let current: AbortController | null = null
+  let current: AbortController | null = null;
   const run = async <T>(task: (signal: AbortSignal) => Promise<T>) => {
-    current?.abort()
-    const controller = new AbortController()
-    current = controller
+    current?.abort();
+    const controller = new AbortController();
+    current = controller;
     try {
-      const value = await task(controller.signal)
-      return current === controller ? { stale: false, value } : { stale: true }
+      const value = await task(controller.signal);
+      return current === controller ? {stale: false, value} : {stale: true};
     } catch (error) {
-      if (current !== controller) return { stale: true }
-      throw error
+      if (current !== controller) return {stale: true};
+      throw error;
     }
-  }
+  };
   return Object.assign(run, {
     cancel() {
-      current?.abort()
-      current = null
+      current?.abort();
+      current = null;
     },
-  })
+  });
 }

@@ -16,20 +16,20 @@ export const MC_COLORS: Readonly<Record<string, string>> = {
   d: '#FF55FF',
   e: '#FFFF55',
   f: '#FFFFFF',
-}
+};
 
 export interface Segment {
-  text: string
+  text: string;
   /** A chat colour, or null for the tag's own text style. */
-  color: string | null
-  bold: boolean
-  italic: boolean
-  underline: boolean
-  strikethrough: boolean
-  obfuscated: boolean
+  color: string | null;
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+  strikethrough: boolean;
+  obfuscated: boolean;
 }
 
-type Style = Omit<Segment, 'text'>
+type Style = Omit<Segment, 'text'>;
 
 const STYLE_CODES: Readonly<Record<string, keyof Omit<Style, 'color'>>> = {
   l: 'bold',
@@ -37,7 +37,7 @@ const STYLE_CODES: Readonly<Record<string, keyof Omit<Style, 'color'>>> = {
   n: 'underline',
   m: 'strikethrough',
   k: 'obfuscated',
-}
+};
 
 const reset = (color: string | null = null): Style => ({
   color,
@@ -46,7 +46,7 @@ const reset = (color: string | null = null): Style => ({
   underline: false,
   strikethrough: false,
   obfuscated: false,
-})
+});
 
 /**
  * Splits text with `§` formatting codes into styled runs. As in the game, a
@@ -54,30 +54,30 @@ const reset = (color: string | null = null): Style => ({
  * everything, unknown codes are dropped, and a `§` at the very end is text.
  */
 export function parseFormatted(text: string): Segment[] {
-  const segments: Segment[] = []
-  let style = reset()
-  let run = ''
+  const segments: Segment[] = [];
+  let style = reset();
+  let run = '';
   const flush = () => {
-    if (run) segments.push({ text: run, ...style })
-    run = ''
-  }
+    if (run) segments.push({text: run, ...style});
+    run = '';
+  };
   for (let i = 0; i < text.length; i++) {
-    const char = text[i]!
+    const char = text[i]!;
     if (char !== '§' || i === text.length - 1) {
-      run += char
-      continue
+      run += char;
+      continue;
     }
-    const code = text[++i]!.toLowerCase()
-    flush()
-    const color = MC_COLORS[code]
-    if (color) style = reset(color)
-    else if (code === 'r') style = reset()
-    else if (STYLE_CODES[code]) style = { ...style, [STYLE_CODES[code]]: true }
+    const code = text[++i]!.toLowerCase();
+    flush();
+    const color = MC_COLORS[code];
+    if (color) style = reset(color);
+    else if (code === 'r') style = reset();
+    else if (STYLE_CODES[code]) style = {...style, [STYLE_CODES[code]]: true};
   }
-  flush()
-  return segments
+  flush();
+  return segments;
 }
 
 export function hasFormatting(text: string): boolean {
-  return /§[0-9a-fk-or]/i.test(text)
+  return /§[0-9a-fk-or]/i.test(text);
 }

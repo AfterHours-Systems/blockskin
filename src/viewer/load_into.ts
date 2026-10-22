@@ -3,15 +3,18 @@ import type {
   EarsApplyOptions,
   PlayerObject,
   SkinApplyOptions,
-} from '../model/PlayerObject.js'
-import type { ModelType } from '../format/skin.js'
-import type { Pixels } from '../format/pixels.js'
-import { readPixels, type ImageInput } from '../textures/input.js'
+} from '../model/player_object.js';
+import type {ModelType} from '../format/skin.js';
+import type {Pixels} from '../format/pixels.js';
+import {readPixels, type ImageInput} from '../textures/input.js';
 
-export type PixelReader = (input: ImageInput, signal?: AbortSignal) => Promise<Pixels>
+export type PixelReader = (
+  input: ImageInput,
+  signal?: AbortSignal,
+) => Promise<Pixels>;
 
 function throwIfAborted(signal?: AbortSignal): void {
-  if (signal?.aborted) throw new DOMException('Load superseded', 'AbortError')
+  if (signal?.aborted) throw new DOMException('Load superseded', 'AbortError');
 }
 
 // Each loader reads first and applies last. A read that fails, or an image the
@@ -24,10 +27,10 @@ export async function loadSkinInto(
   signal?: AbortSignal,
   read: PixelReader = readPixels,
 ): Promise<ModelType | null> {
-  if (input === null) return player.applySkin(null)
-  const pixels = await read(input, signal)
-  throwIfAborted(signal)
-  return player.applySkin(pixels, opts)
+  if (input === null) return player.applySkin(null);
+  const pixels = await read(input, signal);
+  throwIfAborted(signal);
+  return player.applySkin(pixels, opts);
 }
 
 export async function loadCapeInto(
@@ -37,10 +40,10 @@ export async function loadCapeInto(
   signal?: AbortSignal,
   read: PixelReader = readPixels,
 ): Promise<void> {
-  if (input === null) return player.applyCape(null)
-  const pixels = await read(input, signal)
-  throwIfAborted(signal)
-  player.applyCape(pixels, opts)
+  if (input === null) return player.applyCape(null);
+  const pixels = await read(input, signal);
+  throwIfAborted(signal);
+  player.applyCape(pixels, opts);
 }
 
 export async function loadEarsInto(
@@ -50,8 +53,8 @@ export async function loadEarsInto(
   signal?: AbortSignal,
   read: PixelReader = readPixels,
 ): Promise<void> {
-  if (input === null) return player.applyEars(null)
-  const pixels = await read(input, signal)
-  throwIfAborted(signal)
-  player.applyEars(pixels, opts)
+  if (input === null) return player.applyEars(null);
+  const pixels = await read(input, signal);
+  throwIfAborted(signal);
+  player.applyEars(pixels, opts);
 }
