@@ -1,5 +1,9 @@
-/** 'system' follows the user's "reduce motion" setting; the others force it. */
-export type ReducedMotionMode = 'system' | 'always' | 'never'
+/**
+ * 'system' follows the user's "reduce motion" setting; 'always' reduces
+ * motion for everyone. There is deliberately no way to override a user who
+ * asked for less motion.
+ */
+export type ReducedMotionMode = 'system' | 'always'
 
 export function isReduced(mode: ReducedMotionMode, systemPrefersReduced: boolean): boolean {
   return mode === 'always' || (mode === 'system' && systemPrefersReduced)

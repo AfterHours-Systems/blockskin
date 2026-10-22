@@ -173,7 +173,6 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
         >
           <option value="system">reduced motion: system</option>
           <option value="always">reduced motion: always</option>
-          <option value="never">reduced motion: never</option>
         </select>
       </fieldset>
       <fieldset>

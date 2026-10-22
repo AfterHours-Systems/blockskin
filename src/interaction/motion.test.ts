@@ -7,8 +7,6 @@ describe('isReduced', () => {
     ['system', false, false],
     ['always', false, true],
     ['always', true, true],
-    ['never', true, false],
-    ['never', false, false],
   ] as const)('%s with the system preferring reduced=%s gives %s', (mode, system, expected) => {
     expect(isReduced(mode, system)).toBe(expected)
   })
@@ -45,12 +43,16 @@ describe('watchReducedMotion', () => {
     expect(query.removeEventListener).toHaveBeenCalled()
   })
 
-  it('ignores the system with always and never', () => {
-    stubMatchMedia(true)
+  it('forces reduced motion with always, whatever the system says', () => {
+    stubMatchMedia(false)
     const seen: boolean[] = []
-    watchReducedMotion('never', (reduced) => seen.push(reduced))
     watchReducedMotion('always', (reduced) => seen.push(reduced))
-    expect(seen).toEqual([false, true])
+    expect(seen).toEqual([true])
+  })
+
+  it('offers no way to switch the user preference off', () => {
+    // @ts-expect-error 'never' was removed: a site may not override a user who reduces motion.
+    expect(() => watchReducedMotion('never', () => {})).not.toThrow()
   })
 
   it('reports false for system where matchMedia does not exist', () => {

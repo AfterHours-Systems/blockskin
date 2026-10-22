@@ -186,3 +186,49 @@ describe('reactions with the head following the pointer', () => {
     expect(maxYaw).toBeGreaterThan(0.3)
   })
 })
+
+describe('reduced motion switching mid-way', () => {
+  it('stops a running motion reaction when reduced motion turns on', () => {
+    const driver = driverWith()
+    for (let i = 0; i < 5; i++) {
+      driver.poke('body', away)
+      advance(driver, 0.3)
+    }
+    advance(driver, 0.15)
+    driver.reducedMotion = true
+    let lean = 0
+    for (let i = 0; i < 15; i++) {
+      advance(driver, 0.02)
+      lean = Math.max(lean, driver.player.skin.body.rotation.x)
+    }
+    expect(lean).toBeCloseTo(0)
+  })
+
+  it('blends back into the animation when reduced motion turns off', () => {
+    const driver = new PlayerDriver(new PlayerObject())
+    driver.reducedMotion = true
+    driver.animation = new WalkingAnimation()
+    driver.update(0.3)
+    driver.reducedMotion = false
+    driver.update(1 / 60)
+    const plain = new PlayerObject()
+    const walk = new WalkingAnimation()
+    walk.update(plain, 0)
+    walk.update(plain, 1 / 60)
+    // Not yet at the walk pose: the switch is blended.
+    expect(Math.abs(driver.player.skin.rightLeg.rotation.x)).toBeLessThan(
+      Math.abs(plain.skin.rightLeg.rotation.x) * 0.5 + 1e-9,
+    )
+  })
+
+  it('takes the elytra off when reduced motion turns on mid-flight', () => {
+    const driver = driverWith(
+      new RandomActions({ actions: [{ name: 'fly', weight: 1 }], random: () => 0 }),
+    )
+    advance(driver, 0.5)
+    expect(driver.player.elytra.visible).toBe(true)
+    driver.reducedMotion = true
+    advance(driver, 0.1)
+    expect(driver.player.elytra.visible).toBe(false)
+  })
+})

@@ -20,7 +20,7 @@ export interface PlaygroundState {
   lookAt: 'off' | 'window' | 'canvas'
   layers3d: boolean
   shadow: boolean
-  reducedMotion: 'system' | 'always' | 'never'
+  reducedMotion: 'system' | 'always'
   /** Own-canvas mode only: pass no onPoke, as an app that ignores pokes would. */
   quiet: boolean
   paused: boolean

@@ -219,8 +219,9 @@ scrambled, `§r` reset. They use the game's colours and text shadow, so
 
 **Reduced motion.** `reducedMotion: 'system'` (the default) follows the
 user's "reduce motion" setting. When it's on, the player holds still,
-auto-rotate pauses and pokes only flash. Use `'always'` or `'never'` to force
-it either way.
+auto-rotate pauses and pokes only flash. `'always'` reduces motion for
+everyone. There is deliberately no way to switch it off for a user who asked
+for less motion.
 
 ## Name tags and fonts
 

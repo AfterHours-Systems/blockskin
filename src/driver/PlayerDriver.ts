@@ -92,8 +92,13 @@ export class PlayerDriver {
   set reducedMotion(value: boolean) {
     if (value === this._reducedMotion) return
     this._reducedMotion = value
+    // Either way the change blends over from what is shown.
+    this.startTransition()
     if (value) {
-      this.startTransition()
+      // Stop the animation (taking off anything it put on, like an elytra)
+      // and any reaction that moves the player; only the flash remains.
+      this._animation?.stop(this.player)
+      this.active = this.active.filter((entry) => !entry.reaction.motion)
       this.player.resetPose()
       this.layeredLastFrame = false
     }
