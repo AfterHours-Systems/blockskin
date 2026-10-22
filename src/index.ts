@@ -5,6 +5,7 @@ export { normalizeCape, type NormalizedTexture } from './format/cape.js'
 export { earsFromSkin, normalizeEars } from './format/ears.js'
 export {
   isTextureSource,
+  loadTextureSource,
   readPixels,
   type ImageInput,
   type RemoteImage,
@@ -26,3 +27,15 @@ export {
   type SkinApplyOptions,
 } from './model/PlayerObject.js'
 export * from './animation/index.js'
+export { EARS_EXTRA, NAME_TAG_GAP, nameTagLayout, type Margin } from './nametag/layout.js'
+export { NameTagObject, type NameTagOptions } from './nametag/NameTagObject.js'
+export { cameraDistance } from './viewer/framing.js'
+export { loadCapeInto, loadEarsInto, loadSkinInto, type PixelReader } from './viewer/loadInto.js'
+export {
+  SkinViewer,
+  type CapeLoadOptions,
+  type EarsLoadOptions,
+  type LoadOptions,
+  type SkinLoadOptions,
+  type SkinViewerOptions,
+} from './viewer/SkinViewer.js'

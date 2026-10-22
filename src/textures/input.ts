@@ -76,9 +76,17 @@ function createCanvas(width: number, height: number): HTMLCanvasElement | Offscr
   return canvas
 }
 
+/** Resolves an input to something three can upload, loading URLs first. Browser only. */
+export async function loadTextureSource(
+  input: ImageInput,
+  signal?: AbortSignal,
+): Promise<TextureSource> {
+  return isTextureSource(input) ? input : loadImage(input, signal)
+}
+
 /** Decodes any supported input into an RGBA buffer. Browser only. */
 export async function readPixels(input: ImageInput, signal?: AbortSignal): Promise<Pixels> {
-  const source = isTextureSource(input) ? input : await loadImage(input, signal)
+  const source = await loadTextureSource(input, signal)
   if (signal?.aborted) throw abortError()
   const [width, height] = sourceSize(source)
   if (width === 0 || height === 0) return createPixels(width, height)
