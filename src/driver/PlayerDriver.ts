@@ -103,6 +103,11 @@ export class PlayerDriver {
     this.transitionTime = 0
   }
 
+  /** Whether something is still playing out (a transition, a reaction or the flash). */
+  get busy(): boolean {
+    return this.from !== null || this.active.length > 0 || this.flash > 0
+  }
+
   /** Reacts to a poke on `part`; `away` points away from the viewer in the player's parent space. */
   poke(part: PokePart, away: Vector3): void {
     const set = this.reactions

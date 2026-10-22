@@ -16,6 +16,7 @@ export interface PlaygroundState {
   animation: AnimationName | 'none'
   speed: number
   transition: number
+  reactions: boolean
   paused: boolean
   upsideDown: boolean
   /** '' for transparent. */
@@ -40,6 +41,7 @@ export const DEFAULT_STATE: PlaygroundState = {
   animation: 'walk',
   speed: 1,
   transition: 0.25,
+  reactions: false,
   paused: false,
   upsideDown: false,
   background: '',

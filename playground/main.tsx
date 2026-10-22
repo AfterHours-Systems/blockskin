@@ -1,6 +1,8 @@
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useThree } from '@react-three/fiber'
+import type { Camera } from 'three'
 import { StrictMode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
+import type { PokePart } from '../src/index.js'
 import {
   createAnimation,
   SkinViewer as VanillaViewer,
@@ -26,6 +28,7 @@ interface Api {
   player(): PlayerObject | null
   screenshot(): string
   viewer?: VanillaViewer
+  camera?: () => Camera | undefined
 }
 
 declare global {
@@ -36,7 +39,9 @@ declare global {
       player(): PlayerObject | null
       screenshot(): string
       viewer(): VanillaViewer | undefined
+      camera(): Camera | undefined
       errors: string[]
+      pokes: PokePart[]
       loads: number
     }
   }
@@ -49,10 +54,11 @@ interface ViewProps {
   panorama: ImageInput | null
   onError: (error: unknown) => void
   onLoad: () => void
+  onPoke: (part: PokePart) => void
   apiRef: React.RefObject<Api | null>
 }
 
-function ReactView({ state, skin, cape, panorama, onError, onLoad, apiRef }: ViewProps) {
+function ReactView({ state, skin, cape, panorama, onError, onLoad, onPoke, apiRef }: ViewProps) {
   const handle = useRef<SkinViewerHandle>(null)
   const ears = useMemo(() => earsInput(state.ears), [state.ears])
   useEffect(() => {
@@ -78,6 +84,8 @@ function ReactView({ state, skin, cape, panorama, onError, onLoad, apiRef }: Vie
       animationSpeed={state.speed}
       paused={state.paused}
       transition={state.transition}
+      reactions={state.reactions}
+      onPoke={onPoke}
       upsideDown={state.upsideDown}
       background={state.background || null}
       panorama={panorama}
@@ -93,7 +101,7 @@ function ReactView({ state, skin, cape, panorama, onError, onLoad, apiRef }: Vie
   )
 }
 
-function VanillaView({ state, skin, cape, panorama, onError, onLoad, apiRef }: ViewProps) {
+function VanillaView({ state, skin, cape, panorama, onError, onLoad, onPoke, apiRef }: ViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [viewer, setViewer] = useState<VanillaViewer | null>(null)
 
@@ -161,6 +169,11 @@ function VanillaView({ state, skin, cape, panorama, onError, onLoad, apiRef }: V
   }, [viewer, state.transition])
   useEffect(() => {
     if (!viewer) return
+    viewer.reactions = state.reactions
+    viewer.onPoke = onPoke
+  }, [viewer, state.reactions, onPoke])
+  useEffect(() => {
+    if (!viewer) return
     viewer.playerObject.upsideDown = state.upsideDown
     viewer.fov = state.fov
     viewer.zoom = state.zoom
@@ -176,16 +189,27 @@ function VanillaView({ state, skin, cape, panorama, onError, onLoad, apiRef }: V
   return <canvas ref={canvasRef} style={{ imageRendering: 'pixelated', display: 'block' }} />
 }
 
+// Hands the canvas's camera to scripts; R3F's default camera isn't in the scene.
+function CameraTap({ cameraRef }: { cameraRef: React.RefObject<Camera | null> }) {
+  const camera = useThree((state) => state.camera)
+  useEffect(() => {
+    cameraRef.current = camera
+  }, [camera, cameraRef])
+  return null
+}
+
 // The player alone in a canvas that only redraws on demand, the way an app
 // embedding <MinecraftPlayer> in its own scene might run it.
-function PlayerView({ state, skin, cape, onError, onLoad, apiRef }: ViewProps) {
+function PlayerView({ state, skin, cape, onError, onLoad, onPoke, apiRef }: ViewProps) {
   const player = useRef<PlayerObject>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
+  const camera = useRef<Camera | null>(null)
   const ears = useMemo(() => earsInput(state.ears), [state.ears])
   useEffect(() => {
     apiRef.current = {
       player: () => player.current,
       screenshot: () => canvas.current!.toDataURL(),
+      camera: () => camera.current ?? undefined,
     }
   }, [apiRef])
   return (
@@ -198,6 +222,7 @@ function PlayerView({ state, skin, cape, onError, onLoad, apiRef }: ViewProps) {
       style={{ width: WIDTH, height: HEIGHT, imageRendering: 'pixelated' }}
     >
       <ambientLight intensity={3} />
+      <CameraTap cameraRef={camera} />
       <group position={[0, -16, 0]}>
         <MinecraftPlayer
           ref={player}
@@ -209,6 +234,9 @@ function PlayerView({ state, skin, cape, onError, onLoad, apiRef }: ViewProps) {
           layers={layersFromHidden(state.hidden)}
           nameTag={state.nameTag || null}
           upsideDown={state.upsideDown}
+          transition={state.transition}
+          reactions={state.reactions}
+          onPoke={onPoke}
           onError={onError}
           onLoad={onLoad}
         />
@@ -224,6 +252,8 @@ function App() {
   const apiRef = useRef<Api | null>(null)
   const errors = useRef<string[]>([])
   const loads = useRef(0)
+  const pokes = useRef<PokePart[]>([])
+  const [pokeLog, setPokeLog] = useState<PokePart[]>([])
   const set = useCallback(
     (patch: Partial<PlaygroundState>) => setState((s) => ({ ...s, ...patch })),
     [],
@@ -238,6 +268,10 @@ function App() {
     errors.current.push(message)
     setError(message)
   }, [])
+  const onPoke = useCallback((part: PokePart) => {
+    pokes.current.push(part)
+    setPokeLog((log) => [...log.slice(-7), part])
+  }, [])
   const onLoad = useCallback(() => {
     loads.current++
     setError('')
@@ -250,14 +284,16 @@ function App() {
       player: () => apiRef.current?.player() ?? null,
       screenshot: () => apiRef.current!.screenshot(),
       viewer: () => apiRef.current?.viewer,
+      camera: () => apiRef.current?.camera?.() ?? apiRef.current?.viewer?.camera,
       errors: errors.current,
+      pokes: pokes.current,
       get loads() {
         return loads.current
       },
     }
   }, [state, set])
 
-  const props = { state, skin, cape, panorama, onError, onLoad, apiRef }
+  const props = { state, skin, cape, panorama, onError, onLoad, onPoke, apiRef }
   return (
     <>
       <div id="viewer" style={{ width: WIDTH, height: HEIGHT }}>
@@ -283,6 +319,7 @@ function App() {
           link.click()
         }}
         error={error}
+        pokes={pokeLog}
       />
     </>
   )

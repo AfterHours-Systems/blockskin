@@ -8,6 +8,7 @@ import {
   SRGBColorSpace,
   Scene,
   Texture,
+  Raycaster,
   Vector2,
   Vector3,
   WebGLRenderer,
@@ -18,6 +19,14 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import type { PlayerAnimation } from '../animation/PlayerAnimation.js'
 import type { ModelType } from '../format/skin.js'
 import { PlayerDriver } from '../driver/PlayerDriver.js'
+import { DEFAULT_REACTIONS, type ReactionSet } from '../driver/reactions.js'
+import {
+  awayFromCamera,
+  findPokedPart,
+  isPoke,
+  type PointerSample,
+  type PokePart,
+} from '../interaction/poke.js'
 import { PlayerObject, type BackEquipment } from '../model/PlayerObject.js'
 import { EARS_EXTRA, NAME_TAG_GAP } from '../nametag/layout.js'
 import { NameTagObject } from '../nametag/NameTagObject.js'
@@ -64,6 +73,10 @@ export interface SkinViewerOptions {
   animation?: PlayerAnimation | null
   /** Seconds to blend between animations; 0 snaps. Defaults to 0.25. */
   transition?: number
+  /** React to pokes: true for the default reactions, or your own set. Off by default. */
+  reactions?: boolean | ReactionSet
+  /** Called for every poke, with the part that was hit, even with reactions off. */
+  onPoke?: (part: PokePart) => void
   nameTag?: NameTagObject | string | null
   /** Multisample anti-aliasing. Defaults to true. */
   antialias?: boolean
@@ -82,6 +95,7 @@ export class SkinViewer {
   readonly playerObject = new PlayerObject()
   /** Runs the animation and everything layered on it. */
   readonly driver: PlayerDriver
+  onPoke: ((part: PokePart) => void) | null = null
   /** Spins for auto-rotate. */
   readonly playerWrapper = new Group()
   readonly globalLight = new AmbientLight(0xffffff, 3)
@@ -173,9 +187,47 @@ export class SkinViewer {
     }
     if (options.panorama !== undefined) report(this.loadPanorama(options.panorama))
 
+    this.reactions = options.reactions ?? false
+    this.onPoke = options.onPoke ?? null
+    this.canvas.addEventListener('pointerdown', this.onPointerDown)
+    this.canvas.addEventListener('pointerup', this.onPointerUp)
     this.canvas.addEventListener('webglcontextlost', this.onContextLost)
     this.canvas.addEventListener('webglcontextrestored', this.onContextRestored)
     this.renderPaused = options.renderPaused ?? false
+  }
+
+  private pointerDown: PointerSample | null = null
+  private readonly raycaster = new Raycaster()
+
+  private readonly onPointerDown = (event: PointerEvent) => {
+    this.pointerDown = { x: event.clientX, y: event.clientY, time: event.timeStamp }
+  }
+
+  private readonly onPointerUp = (event: PointerEvent) => {
+    const down = this.pointerDown
+    this.pointerDown = null
+    if (!down || !isPoke(down, { x: event.clientX, y: event.clientY, time: event.timeStamp }))
+      return
+    const rect = this.canvas.getBoundingClientRect()
+    const ndc = new Vector2(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1,
+    )
+    this.scene.updateMatrixWorld()
+    this.raycaster.setFromCamera(ndc, this.camera)
+    const part = findPokedPart(this.raycaster, this.playerObject)
+    if (!part) return
+    this.onPoke?.(part)
+    this.driver.poke(part, awayFromCamera(this.camera, this.playerObject))
+  }
+
+  /** What pokes do: true for the default reactions, false for none, or your own set. */
+  get reactions(): ReactionSet | false {
+    return this.driver.reactions ?? false
+  }
+
+  set reactions(value: boolean | ReactionSet) {
+    this.driver.reactions = value === true ? DEFAULT_REACTIONS : value || null
   }
 
   private readonly onDragStart = () => {
@@ -494,6 +546,8 @@ export class SkinViewer {
     // disposed viewer.
     for (const load of Object.values(this.loads)) load.cancel()
     this.stopLoop()
+    this.canvas.removeEventListener('pointerdown', this.onPointerDown)
+    this.canvas.removeEventListener('pointerup', this.onPointerUp)
     this.canvas.removeEventListener('webglcontextlost', this.onContextLost)
     this.canvas.removeEventListener('webglcontextrestored', this.onContextRestored)
     this.pixelRatioQuery?.removeEventListener('change', this.onPixelRatioChange)

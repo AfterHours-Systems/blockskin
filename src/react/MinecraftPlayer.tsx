@@ -1,8 +1,16 @@
-import { useFrame, useThree, type ThreeElements } from '@react-three/fiber'
+import { useFrame, useThree, type ThreeElements, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react'
 import { Vector3 } from 'three'
 import type { ModelType } from '../format/skin.js'
 import { PlayerDriver } from '../driver/PlayerDriver.js'
+import { DEFAULT_REACTIONS, type ReactionSet } from '../driver/reactions.js'
+import {
+  awayFromCamera,
+  isPoke,
+  partFromObject,
+  type PointerSample,
+  type PokePart,
+} from '../interaction/poke.js'
 import { PlayerObject, type BackEquipment } from '../model/PlayerObject.js'
 import { EARS_EXTRA, NAME_TAG_GAP } from '../nametag/layout.js'
 import { NameTagObject } from '../nametag/NameTagObject.js'
@@ -37,6 +45,10 @@ export interface MinecraftPlayerProps extends Omit<
   upsideDown?: boolean
   /** Seconds to blend between animations; 0 snaps. Defaults to 0.25. */
   transition?: number
+  /** React to pokes: true for the default reactions, or your own set. Off by default. */
+  reactions?: boolean | ReactionSet
+  /** Called for every poke, with the part that was hit, even with reactions off. */
+  onPoke?: (part: PokePart) => void
   onLoad?: (model: ModelType) => void
   onError?: (error: unknown) => void
   ref?: Ref<PlayerObject | null>
@@ -58,6 +70,8 @@ export function MinecraftPlayer({
   paused,
   upsideDown = false,
   transition = 0.25,
+  reactions = false,
+  onPoke,
   onLoad,
   onError,
   ref,
@@ -77,9 +91,11 @@ export function MinecraftPlayer({
   // Canvases with frameloop="demand" only redraw when asked; texture loads
   // and the mutations below change nothing React can see.
   const invalidate = useThree((state) => state.invalidate)
+  const camera = useThree((state) => state.camera)
+  const pointerDown = useRef<PointerSample | null>(null)
   const capeLoaded = useRef(false)
-  const callbacks = useRef({ onLoad, onError, backEquipment })
-  callbacks.current = { onLoad, onError, backEquipment }
+  const callbacks = useRef({ onLoad, onError, backEquipment, onPoke })
+  callbacks.current = { onLoad, onError, backEquipment, onPoke }
 
   useEffect(() => {
     const created = new PlayerObject()
@@ -189,6 +205,39 @@ export function MinecraftPlayer({
     if (driver) driver.transition = transition
   }, [driver, transition])
 
+  useEffect(() => {
+    if (driver) driver.reactions = reactions === true ? DEFAULT_REACTIONS : reactions || null
+  }, [driver, reactions])
+
+  type PointerHandler = ((event: ThreeEvent<PointerEvent>) => void) | undefined
+  const { onPointerDown, onPointerUp, ...groupProps } = group
+  // R3F types its event props as Readonly functions, which TypeScript won't call.
+  const userPointerDown = onPointerDown as PointerHandler
+  const userPointerUp = onPointerUp as PointerHandler
+
+  const handlePointerDown = (event: ThreeEvent<PointerEvent>) => {
+    userPointerDown?.(event)
+    const { clientX, clientY, timeStamp } = event.nativeEvent
+    pointerDown.current = { x: clientX, y: clientY, time: timeStamp }
+  }
+
+  const handlePointerUp = (event: ThreeEvent<PointerEvent>) => {
+    userPointerUp?.(event)
+    const down = pointerDown.current
+    const { clientX, clientY, timeStamp } = event.nativeEvent
+    if (!player || !driver || !down) return
+    if (!isPoke(down, { x: clientX, y: clientY, time: timeStamp })) return
+    // R3F calls this for each object along the ray, nearest first; the first
+    // one that belongs to a visible part takes the poke.
+    const part = partFromObject(event.object)
+    if (!part) return
+    event.stopPropagation()
+    pointerDown.current = null
+    callbacks.current.onPoke?.(part)
+    driver.poke(part, awayFromCamera(camera, player))
+    invalidate()
+  }
+
   // Declared last so it runs after every other effect of a commit.
   useEffect(() => {
     invalidate()
@@ -201,7 +250,12 @@ export function MinecraftPlayer({
       if (animationSpeed !== undefined) current.speed = animationSpeed
       if (paused !== undefined) current.paused = paused
     }
-    driver.update(delta)
+    // A demand-driven canvas reports the whole idle time as the first frame's
+    // delta; capped, a poke's flash and knockback still play out visibly.
+    driver.update(Math.min(delta, 0.1))
+    // Reactions and transitions play out over several frames, which a
+    // demand-driven canvas would otherwise not draw.
+    if (driver.busy) invalidate()
     if (tag) {
       const top = player.headTop(scratch)
       tag.position.set(top.x, top.y + NAME_TAG_GAP + (player.ears.visible ? EARS_EXTRA : 0), top.z)
@@ -209,7 +263,12 @@ export function MinecraftPlayer({
   })
 
   return (
-    <group {...group} visible={ready && group.visible !== false}>
+    <group
+      {...groupProps}
+      visible={ready && group.visible !== false}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+    >
       {player && <primitive object={player} />}
       {player && tag && <primitive object={tag} />}
     </group>

@@ -8,14 +8,17 @@ interface PanelProps {
   onFile: (url: string) => void
   onScreenshot: () => void
   error: string
+  pokes: string[]
 }
 
-export function Panel({ state, set, onFile, onScreenshot, error }: PanelProps) {
+export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelProps) {
   const num =
     (key: 'fov' | 'zoom' | 'speed' | 'cameraLight' | 'transition') =>
     (e: ChangeEvent<HTMLInputElement>) =>
       set({ [key]: Number(e.target.value) })
-  const check = (key: 'paused' | 'upsideDown' | 'panorama' | 'autoRotate' | 'controls') => (
+  const check = (
+    key: 'paused' | 'upsideDown' | 'panorama' | 'autoRotate' | 'controls' | 'reactions',
+  ) => (
     <label>
       <input
         type="checkbox"
@@ -188,6 +191,8 @@ export function Panel({ state, set, onFile, onScreenshot, error }: PanelProps) {
           {state.transition}s
         </label>
         {check('paused')}
+        {check('reactions')}
+        <div id="pokes">pokes: {pokes.join(', ')}</div>
       </fieldset>
       <fieldset>
         <legend>Scene</legend>
