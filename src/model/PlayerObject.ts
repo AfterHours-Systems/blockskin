@@ -1,10 +1,21 @@
-import { BoxGeometry, Color, Euler, Group, Mesh, Vector3, type Material, type Texture } from 'three'
+import {
+  BoxGeometry,
+  BufferGeometry,
+  Color,
+  Euler,
+  Group,
+  Mesh,
+  Vector3,
+  type Material,
+  type Texture,
+} from 'three'
 import { normalizeCape } from '../format/cape.js'
 import { earsFromSkin, normalizeEars } from '../format/ears.js'
 import type { Pixels } from '../format/pixels.js'
 import { detectModel, normalizeSkin, type ModelType } from '../format/skin.js'
 import { createPixelTexture } from '../textures/texture.js'
 import { drawDefaultElytra } from './defaultElytra.js'
+import { buildVoxelLayer } from './voxelLayer.js'
 import {
   CAPE,
   EARS,
@@ -37,7 +48,8 @@ function box(
 /** One body part. The group's origin is the joint it rotates around. */
 export class BodyPart extends Group {
   readonly inner: Mesh<BoxGeometry, Material>
-  readonly outer: Mesh<BoxGeometry, Material>
+  readonly outer: Mesh<BufferGeometry, Material>
+  private layout: PartLayout
 
   constructor(name: PartName, layout: PartLayout, inner: Material, outer: Material) {
     super()
@@ -47,10 +59,12 @@ export class BodyPart extends Group {
     this.outer = new Mesh(new BoxGeometry(), outer)
     this.outer.name = `${name}Outer`
     this.add(this.inner, this.outer)
+    this.layout = layout
     this.setLayout(layout)
   }
 
   setLayout(layout: PartLayout): void {
+    this.layout = layout
     this.position.set(...layout.pivot)
     this.inner.geometry.dispose()
     this.outer.geometry.dispose()
@@ -58,6 +72,23 @@ export class BodyPart extends Group {
     this.outer.geometry = box(layout.size, layout.outerUv, layout.inflate, 64, 64)
     this.inner.position.set(...layout.offset)
     this.outer.position.set(...layout.offset)
+  }
+
+  /**
+   * Replaces the flat outer layer with a block geometry (positioned relative
+   * to the pivot), or restores the flat box for null. The old geometry is
+   * disposed either way.
+   */
+  setOuterGeometry(geometry: BufferGeometry | null): void {
+    this.outer.geometry.dispose()
+    if (geometry) {
+      this.outer.geometry = geometry
+      this.outer.position.set(0, 0, 0)
+    } else {
+      const { size, outerUv, inflate, offset } = this.layout
+      this.outer.geometry = box(size, outerUv, inflate, 64, 64)
+      this.outer.position.set(...offset)
+    }
   }
 }
 
@@ -272,6 +303,8 @@ export class PlayerObject extends Group {
   }
   private _backEquipment: BackEquipment | null = null
   private restPose = new Map<Group, Pose>()
+  private skinPixels: { pixels: Pixels; scale: number } | null = null
+  private _layers3d = false
 
   constructor() {
     super()
@@ -366,6 +399,8 @@ export class PlayerObject extends Group {
     }
     this.skin.map = this.replaceTexture('skin', normalized.pixels)
     this.skin.visible = true
+    this.skinPixels = { pixels: normalized.pixels, scale: normalized.scale }
+    if (this._layers3d) this.rebuildOuterLayers()
     if (opts.ears === true || opts.ears === 'load-only') {
       // Read the ears from the source: the opaque-background fix may have
       // cleared hat pixels that overlap the ear region.
@@ -394,6 +429,28 @@ export class PlayerObject extends Group {
     this.skin.setColor(tint)
     this.capeMaterial.color.copy(tint)
     this.earsMaterial.color.copy(tint)
+  }
+
+  get layers3d(): boolean {
+    return this._layers3d
+  }
+
+  /** Builds the outer layer from small blocks, like the "3D Skin Layers" mod. Off by default. */
+  set layers3d(value: boolean) {
+    if (value === this._layers3d) return
+    this._layers3d = value
+    this.rebuildOuterLayers()
+  }
+
+  private rebuildOuterLayers(): void {
+    const data = this._layers3d ? this.skinPixels : null
+    for (const part of this.skin.parts()) {
+      part.setOuterGeometry(
+        data
+          ? buildVoxelLayer(data.pixels, data.scale, part.name as PartName, this.skin.modelType)
+          : null,
+      )
+    }
   }
 
   get hasCapeTexture(): boolean {

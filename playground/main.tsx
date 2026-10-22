@@ -87,6 +87,7 @@ function ReactView({ state, skin, cape, panorama, onError, onLoad, onPoke, apiRe
       reactions={state.reactions}
       onPoke={onPoke}
       lookAtPointer={state.lookAt === 'off' ? false : state.lookAt}
+      layers3d={state.layers3d}
       upsideDown={state.upsideDown}
       background={state.background || null}
       panorama={panorama}
@@ -177,6 +178,9 @@ function VanillaView({ state, skin, cape, panorama, onError, onLoad, onPoke, api
     if (viewer) viewer.lookAtPointer = state.lookAt === 'off' ? false : state.lookAt
   }, [viewer, state.lookAt])
   useEffect(() => {
+    if (viewer) viewer.layers3d = state.layers3d
+  }, [viewer, state.layers3d])
+  useEffect(() => {
     if (!viewer) return
     viewer.playerObject.upsideDown = state.upsideDown
     viewer.fov = state.fov
@@ -242,6 +246,7 @@ function PlayerView({ state, skin, cape, onError, onLoad, onPoke, apiRef }: View
           reactions={state.reactions}
           onPoke={onPoke}
           lookAtPointer={state.lookAt === 'off' ? false : state.lookAt}
+          layers3d={state.layers3d}
           onError={onError}
           onLoad={onLoad}
         />

@@ -80,6 +80,8 @@ export interface SkinViewerOptions {
   onPoke?: (part: PokePart) => void
   /** Turn the head towards the pointer: anywhere on the page (true or 'window') or only over the canvas. Off by default. */
   lookAtPointer?: boolean | 'window' | 'canvas'
+  /** Draw the outer layer as small blocks, like the "3D Skin Layers" mod. Off by default. */
+  layers3d?: boolean
   nameTag?: NameTagObject | string | null
   /** Multisample anti-aliasing. Defaults to true. */
   antialias?: boolean
@@ -193,6 +195,7 @@ export class SkinViewer {
     this.reactions = options.reactions ?? false
     this.onPoke = options.onPoke ?? null
     this.lookAtPointer = options.lookAtPointer ?? false
+    this.playerObject.layers3d = options.layers3d ?? false
     this.canvas.addEventListener('pointerdown', this.onPointerDown)
     this.canvas.addEventListener('pointerup', this.onPointerUp)
     this.canvas.addEventListener('webglcontextlost', this.onContextLost)
@@ -227,6 +230,14 @@ export class SkinViewer {
 
   private _lookAtPointer: false | 'window' | 'canvas' = false
   private stopLooking: (() => void) | null = null
+
+  get layers3d(): boolean {
+    return this.playerObject.layers3d
+  }
+
+  set layers3d(value: boolean) {
+    this.playerObject.layers3d = value
+  }
 
   get lookAtPointer(): false | 'window' | 'canvas' {
     return this._lookAtPointer

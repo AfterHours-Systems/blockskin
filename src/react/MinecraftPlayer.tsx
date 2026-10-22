@@ -52,6 +52,8 @@ export interface MinecraftPlayerProps extends Omit<
   onPoke?: (part: PokePart) => void
   /** Turn the head towards the pointer: anywhere on the page (true or 'window') or only over the canvas. Off by default. */
   lookAtPointer?: boolean | 'window' | 'canvas'
+  /** Draw the outer layer as small blocks, like the "3D Skin Layers" mod. Off by default. */
+  layers3d?: boolean
   onLoad?: (model: ModelType) => void
   onError?: (error: unknown) => void
   ref?: Ref<PlayerObject | null>
@@ -76,6 +78,7 @@ export function MinecraftPlayer({
   reactions = false,
   onPoke,
   lookAtPointer = false,
+  layers3d = false,
   onLoad,
   onError,
   ref,
@@ -189,6 +192,10 @@ export function MinecraftPlayer({
   useEffect(() => {
     if (player) player.upsideDown = upsideDown
   }, [player, upsideDown])
+
+  useEffect(() => {
+    if (player) player.layers3d = layers3d
+  }, [player, layers3d])
 
   useEffect(() => {
     if (typeof nameTag !== 'string') {

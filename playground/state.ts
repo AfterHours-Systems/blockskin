@@ -18,6 +18,7 @@ export interface PlaygroundState {
   transition: number
   reactions: boolean
   lookAt: 'off' | 'window' | 'canvas'
+  layers3d: boolean
   paused: boolean
   upsideDown: boolean
   /** '' for transparent. */
@@ -44,6 +45,7 @@ export const DEFAULT_STATE: PlaygroundState = {
   transition: 0.25,
   reactions: false,
   lookAt: 'off',
+  layers3d: false,
   paused: false,
   upsideDown: false,
   background: '',

@@ -17,7 +17,8 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
     (e: ChangeEvent<HTMLInputElement>) =>
       set({ [key]: Number(e.target.value) })
   const check = (
-    key: 'paused' | 'upsideDown' | 'panorama' | 'autoRotate' | 'controls' | 'reactions',
+    key:
+      'paused' | 'upsideDown' | 'panorama' | 'autoRotate' | 'controls' | 'reactions' | 'layers3d',
   ) => (
     <label>
       <input
@@ -155,6 +156,7 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
           <input value={state.nameTag} onChange={(e) => set({ nameTag: e.target.value })} />
         </label>
         {check('upsideDown')}
+        {check('layers3d')}
       </fieldset>
       <fieldset>
         <legend>Animation</legend>
