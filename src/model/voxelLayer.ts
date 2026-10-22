@@ -7,15 +7,22 @@ import { boxUV, type Face } from './uv.js'
 type Axis = 0 | 1 | 2
 type Direction = readonly [axis: Axis, sign: 1 | -1]
 
-// Each box face: the direction it faces, and which 3D directions the image's
-// rightward and downward run along (the same table applyBoxUV uses).
-const FACES: readonly (readonly [Face, Direction, Direction, Direction])[] = [
-  ['left', [0, 1], [2, -1], [1, -1]],
-  ['right', [0, -1], [2, 1], [1, -1]],
-  ['top', [1, 1], [0, 1], [2, 1]],
-  ['bottom', [1, -1], [0, 1], [2, 1]],
-  ['front', [2, 1], [0, 1], [1, -1]],
-  ['back', [2, -1], [0, -1], [1, -1]],
+// Each box face: the direction it faces, which 3D directions the image's
+// rightward and downward run along (the same table applyBoxUV uses), and the
+// axes along which its edge blocks reach over the box's edges.
+//
+// Blocks on neighbouring faces would otherwise leave an empty strip along
+// every box edge. Each edge is filled by exactly one of its two faces: the
+// sides fill the vertical edges, and the sides, front and back fill the edges
+// with the top and bottom. The sides reach both ways, so they also fill the
+// corners.
+const FACES: readonly (readonly [Face, Direction, Direction, Direction, readonly Axis[]])[] = [
+  ['left', [0, 1], [2, -1], [1, -1], [2, 1]],
+  ['right', [0, -1], [2, 1], [1, -1], [2, 1]],
+  ['top', [1, 1], [0, 1], [2, 1], []],
+  ['bottom', [1, -1], [0, 1], [2, 1], []],
+  ['front', [2, 1], [0, 1], [1, -1], [1]],
+  ['back', [2, -1], [0, -1], [1, -1], [1]],
 ]
 
 interface Builder {
@@ -81,11 +88,13 @@ export function buildVoxelLayer(
   const layout = partLayout(part, model)
   const [w, h, d] = layout.size
   const size = [w, h, d] as const
-  const thickness = 2 * layout.inflate
+  // As deep as the flat layer stands off (1 px on the head, 0.5 px
+  // elsewhere), scaled with the texel so HD blocks keep their proportions.
+  const thickness = (2 * layout.inflate) / scale
   const rects = boxUV(layout.outerUv[0], layout.outerUv[1], w, h, d)
   const out: Builder = { positions: [], normals: [], uvs: [], indices: [] }
 
-  for (const [face, [nAxis, nSign], across, down] of FACES) {
+  for (const [face, [nAxis, nSign], across, down, reach] of FACES) {
     const rect = rects[face]
     const cols = rect.w * scale
     const rows = rect.h * scale
@@ -107,6 +116,16 @@ export function buildVoxelLayer(
         const v = 1 - (rect.y * scale + r + 0.5) / skin.height
         const aRange = sorted(at(across, c / cols), at(across, (c + 1) / cols))
         const bRange = sorted(at(down, r / rows), at(down, (r + 1) / rows))
+        // Edge blocks reach over the box edge by the layer's thickness.
+        for (const [axis, range] of [
+          [across[0], aRange],
+          [down[0], bRange],
+        ] as const) {
+          if (!reach.includes(axis)) continue
+          const half = size[axis] / 2
+          if (Math.abs(range[0] + half) < 1e-9) range[0] -= thickness
+          if (Math.abs(range[1] - half) < 1e-9) range[1] += thickness
+        }
         const nRange = sorted(inner, outer)
         // Lay the ranges onto x, y, z by axis.
         const ranges: [number, number][] = []

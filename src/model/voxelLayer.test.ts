@@ -23,8 +23,10 @@ describe('buildVoxelLayer', () => {
     const geometry = buildVoxelLayer(skin, 1, 'head', 'classic')
     expect(triangles(geometry)).toBe(10)
     const box = bounds(geometry)
+    // On the face's top edge, the block also covers the strip above the
+    // head's edge, so the hat has no notch there.
     expect(box.min.toArray()).toEqual([-4, 7, 4])
-    expect(box.max.toArray()).toEqual([-3, 8, 5])
+    expect(box.max.toArray()).toEqual([-3, 9, 5])
   })
 
   it('culls the side shared by two neighbouring texels', () => {
@@ -40,11 +42,38 @@ describe('buildVoxelLayer', () => {
 
   it('uses half-pixel footprints on a 128 skin', () => {
     const skin = createPixels(128, 128)
-    setPixel(skin, 80, 16, OPAQUE)
+    setPixel(skin, 84, 20, OPAQUE) // away from the face's edges
     const size = bounds(buildVoxelLayer(skin, 2, 'head', 'classic')).getSize(new Vector3())
     expect(size.x).toBeCloseTo(0.5)
     expect(size.y).toBeCloseTo(0.5)
-    expect(size.z).toBeCloseTo(1)
+    // Proportionally smaller in every direction, depth included.
+    expect(size.z).toBeCloseTo(0.5)
+  })
+
+  it('reaches across the edge strip from a side face to the front', () => {
+    // The left face's first column borders the front face.
+    const skin = createPixels(64, 64)
+    setPixel(skin, 48, 12, OPAQUE)
+    const box = bounds(buildVoxelLayer(skin, 1, 'head', 'classic'))
+    expect(box.max.z).toBeCloseTo(5)
+    expect(box.min.x).toBeCloseTo(4)
+    expect(box.max.x).toBeCloseTo(5)
+  })
+
+  it('fills the corner where three faces meet', () => {
+    // Top-left texel of the left face: the top-front-left corner.
+    const skin = createPixels(64, 64)
+    setPixel(skin, 48, 8, OPAQUE)
+    const box = bounds(buildVoxelLayer(skin, 1, 'head', 'classic'))
+    expect(box.max.toArray()).toEqual([5, 9, 5])
+  })
+
+  it('leaves the top and bottom faces to the sides at their edges', () => {
+    // A top-face texel on the front edge stays inside the top face's square.
+    const skin = createPixels(64, 64)
+    setPixel(skin, 44, 7, OPAQUE)
+    const box = bounds(buildVoxelLayer(skin, 1, 'head', 'classic'))
+    expect(box.max.z).toBeCloseTo(4)
   })
 
   it('keeps semi-transparent texels', () => {
