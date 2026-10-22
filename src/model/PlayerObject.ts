@@ -4,6 +4,7 @@ import { earsFromSkin, normalizeEars } from '../format/ears.js'
 import type { Pixels } from '../format/pixels.js'
 import { detectModel, normalizeSkin, type ModelType } from '../format/skin.js'
 import { createPixelTexture } from '../textures/texture.js'
+import { drawDefaultElytra } from './defaultElytra.js'
 import {
   CAPE,
   EARS,
@@ -378,6 +379,40 @@ export class PlayerObject extends Group {
     this.capeMaterial.needsUpdate = true
     if (!texture) this.backEquipment = null
     else if (opts.makeVisible !== false) this.backEquipment = opts.backEquipment ?? 'cape'
+  }
+
+  get hasCapeTexture(): boolean {
+    return this.textures.cape !== null
+  }
+
+  /**
+   * Shows the elytra, with blockskin's drawn texture when no cape is loaded.
+   * Returns a function that puts back what was showing before; calling it
+   * more than once is harmless.
+   */
+  wearElytra(): () => void {
+    const previous = this.backEquipment
+    let fallback: Texture | null = null
+    if (!this.hasCapeTexture) {
+      fallback = createPixelTexture(drawDefaultElytra())
+      this.capeMaterial.map = fallback
+      this.capeMaterial.needsUpdate = true
+    }
+    this.backEquipment = 'elytra'
+    let done = false
+    return () => {
+      if (done) return
+      done = true
+      if (fallback) {
+        // A cape loaded meanwhile replaced the map; leave that one alone.
+        if (this.capeMaterial.map === fallback) {
+          this.capeMaterial.map = this.textures.cape
+          this.capeMaterial.needsUpdate = true
+        }
+        fallback.dispose()
+      }
+      this.backEquipment = this.hasCapeTexture || previous === null ? previous : null
+    }
   }
 
   applyEars(pixels: Pixels | null, opts: EarsApplyOptions = {}): void {

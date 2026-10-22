@@ -168,6 +168,7 @@ describe('createAnimation', () => {
       'fly',
       'hit',
       'idle',
+      'random',
       'run',
       'swim',
       'walk',

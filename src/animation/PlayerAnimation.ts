@@ -28,6 +28,11 @@ export abstract class PlayerAnimation {
     this._switchCount++
   }
 
+  /** Called when the animation stops being used, to undo anything it put on the player. */
+  stop(player: PlayerObject): void {
+    void player
+  }
+
   update(player: PlayerObject, deltaSeconds: number): void {
     if (this.paused) return
     const delta = deltaSeconds * this.speed

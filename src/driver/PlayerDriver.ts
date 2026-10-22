@@ -40,6 +40,7 @@ export class PlayerDriver {
   /** Switching resets the pose, as v1 did, and blends over from what was shown. */
   set animation(animation: PlayerAnimation | null) {
     if (animation === this._animation) return
+    this._animation?.stop(this.player)
     this.startTransition()
     this.player.resetPose()
     // The stored base pose belongs to the old animation.
@@ -105,6 +106,7 @@ export class PlayerDriver {
   }
 
   dispose(): void {
+    this._animation?.stop(this.player)
     this.from = null
   }
 }

@@ -7,12 +7,15 @@ import {
   WalkingAnimation,
 } from './locomotion.js'
 import type { PlayerAnimation } from './PlayerAnimation.js'
+import { RandomActions } from './RandomActions.js'
 
 export * from './actions.js'
 export * from './locomotion.js'
 export * from './PlayerAnimation.js'
+export * from './RandomActions.js'
 
-export type AnimationName = 'idle' | 'walk' | 'run' | 'fly' | 'swim' | 'wave' | 'crouch' | 'hit'
+export type AnimationName =
+  'idle' | 'walk' | 'run' | 'fly' | 'swim' | 'wave' | 'crouch' | 'hit' | 'random'
 
 const FACTORIES: Record<AnimationName, () => PlayerAnimation> = {
   idle: () => new IdleAnimation(),
@@ -23,6 +26,7 @@ const FACTORIES: Record<AnimationName, () => PlayerAnimation> = {
   wave: () => new WaveAnimation(),
   crouch: () => new CrouchAnimation(),
   hit: () => new HitAnimation(),
+  random: () => new RandomActions(),
 }
 
 export const ANIMATION_NAMES = Object.keys(FACTORIES) as AnimationName[]
