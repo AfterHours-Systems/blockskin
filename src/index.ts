@@ -25,3 +25,4 @@ export {
   type EarsApplyOptions,
   type SkinApplyOptions,
 } from './model/PlayerObject.js'
+export * from './animation/index.js'
