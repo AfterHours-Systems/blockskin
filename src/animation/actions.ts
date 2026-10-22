@@ -49,6 +49,43 @@ export const CROUCH_PERIOD = 0.5
 
 const DEG = Math.PI / 180
 
+/**
+ * The game's sneak pose at depth `d` (0 standing, 1 crouched): the body leans
+ * forward around the neck and drops, the legs move back to stay under the
+ * hips, and an elytra spreads.
+ */
+export function applyCrouchPose(player: PlayerObject, d: number): void {
+  const { head, body, rightArm, leftArm, rightLeg, leftLeg } = player.skin
+  const lean = 0.5 * d
+  body.rotation.x = lean
+  body.position.y = 24 - 3.2 * d
+  head.position.y = 24 - 4.2 * d
+  for (const arm of [rightArm, leftArm]) {
+    arm.rotation.x = 0.4 * d
+    arm.position.y = (player.skin.modelType === 'slim' ? 21.5 : 22) - 3.2 * d
+  }
+  for (const leg of [rightLeg, leftLeg]) {
+    leg.position.z = -4 * d
+    leg.position.y = 12 - 0.2 * d
+  }
+  // The cape and elytra hang from the top of the back, which the lean
+  // swings up and back.
+  const backY = 24 - 3.2 * d + 2 * Math.sin(lean)
+  const backZ = -2 * Math.cos(lean)
+  player.cape.position.set(0, backY, backZ)
+  player.cape.rotation.x = 6 * DEG + lean
+  player.elytra.position.set(0, backY, backZ)
+  player.elytra.rotation.x = lean
+  const { leftWing } = player.elytra
+  leftWing.rotation.set(
+    lerp(15 * DEG, 40 * DEG, d),
+    lerp(0, -5 * DEG, d),
+    lerp(15 * DEG, 45 * DEG, d),
+  )
+  leftWing.position.y = -3 * d
+  player.elytra.updateRightWing()
+}
+
 export class CrouchAnimation extends PlayerAnimation {
   /** Run the transition once and stay crouched. */
   runOnce = false
@@ -80,37 +117,7 @@ export class CrouchAnimation extends PlayerAnimation {
 
   protected animate(player: PlayerObject, delta: number): void {
     const d = this.depth()
-    const { head, body, rightArm, leftArm, rightLeg, leftLeg } = player.skin
-    // The game's sneak pose, scaled by depth: the body leans forward around
-    // the neck and drops, the legs move back to stay under the hips.
-    const lean = 0.5 * d
-    body.rotation.x = lean
-    body.position.y = 24 - 3.2 * d
-    head.position.y = 24 - 4.2 * d
-    for (const arm of [rightArm, leftArm]) {
-      arm.rotation.x = 0.4 * d
-      arm.position.y = (player.skin.modelType === 'slim' ? 21.5 : 22) - 3.2 * d
-    }
-    for (const leg of [rightLeg, leftLeg]) {
-      leg.position.z = -4 * d
-      leg.position.y = 12 - 0.2 * d
-    }
-    // The cape and elytra hang from the top of the back, which the lean
-    // swings up and back.
-    const backY = 24 - 3.2 * d + 2 * Math.sin(lean)
-    const backZ = -2 * Math.cos(lean)
-    player.cape.position.set(0, backY, backZ)
-    player.cape.rotation.x = 6 * DEG + lean
-    player.elytra.position.set(0, backY, backZ)
-    player.elytra.rotation.x = lean
-    const { leftWing } = player.elytra
-    leftWing.rotation.set(
-      lerp(15 * DEG, 40 * DEG, d),
-      lerp(0, -5 * DEG, d),
-      lerp(15 * DEG, 45 * DEG, d),
-    )
-    leftWing.position.y = -3 * d
-    player.elytra.updateRightWing()
+    applyCrouchPose(player, d)
 
     if (this.hitSpeed !== null) {
       // delta is real time scaled by this.speed; undo that, apply the hit's own.

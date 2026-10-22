@@ -41,3 +41,5 @@ export {
 } from './viewer/SkinViewer.js'
 export * from './driver/pose.js'
 export { PlayerDriver, type PlayerDriverOptions } from './driver/PlayerDriver.js'
+export * from './driver/reactions.js'
+export * from './interaction/poke.js'

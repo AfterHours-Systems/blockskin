@@ -1,4 +1,4 @@
-import { BoxGeometry, Euler, Group, Mesh, Vector3, type Material, type Texture } from 'three'
+import { BoxGeometry, Color, Euler, Group, Mesh, Vector3, type Material, type Texture } from 'three'
 import { normalizeCape } from '../format/cape.js'
 import { earsFromSkin, normalizeEars } from '../format/ears.js'
 import type { Pixels } from '../format/pixels.js'
@@ -18,6 +18,8 @@ import { accessoryMaterial, innerMaterial, outerMaterial, type Bias } from './ma
 import { applyBoxUV, boxUV } from './uv.js'
 
 export type BackEquipment = 'cape' | 'elytra'
+
+const WHITE = new Color(1, 1, 1)
 
 function box(
   size: readonly [number, number, number],
@@ -118,6 +120,11 @@ export class SkinObject extends Group {
       material.map = texture
       material.needsUpdate = true
     }
+  }
+
+  /** Multiplies every skin material's colour; white is no tint. */
+  setColor(color: Color): void {
+    for (const material of this.allMaterials()) material.color.copy(color)
   }
 
   setInnerLayerVisible(visible: boolean): void {
@@ -379,6 +386,14 @@ export class PlayerObject extends Group {
     this.capeMaterial.needsUpdate = true
     if (!texture) this.backEquipment = null
     else if (opts.makeVisible !== false) this.backEquipment = opts.backEquipment ?? 'cape'
+  }
+
+  /** Tints the whole player, e.g. red for the hurt flash; null removes the tint. */
+  setTint(color: Color | null): void {
+    const tint = color ?? WHITE
+    this.skin.setColor(tint)
+    this.capeMaterial.color.copy(tint)
+    this.earsMaterial.color.copy(tint)
   }
 
   get hasCapeTexture(): boolean {

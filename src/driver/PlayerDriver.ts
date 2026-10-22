@@ -1,6 +1,22 @@
+import { Color, type Vector3 } from 'three'
 import type { PlayerAnimation } from '../animation/PlayerAnimation.js'
+import type { PokePart } from '../interaction/poke.js'
 import type { PlayerObject } from '../model/PlayerObject.js'
 import { blendFrom, capturePose, easeOut, restorePose, type PoseSnapshot } from './pose.js'
+import { partReaction, type Reaction, type ReactionContext, type ReactionSet } from './reactions.js'
+
+const FLASH_SECONDS = 0.4
+const FLASH_COLOR = new Color(1, 0.45, 0.45)
+// A reaction fades in and out over this long against the pose beneath it.
+const REACTION_FADE = 0.08
+const ANNOYED_POKES = 5
+const ANNOYED_WINDOW = 3
+
+interface ActiveReaction {
+  reaction: Reaction
+  ctx: ReactionContext
+  time: number
+}
 
 export interface PlayerDriverOptions {
   /** Seconds to blend between animations; 0 snaps. Defaults to 0.25. */
@@ -15,6 +31,8 @@ export interface PlayerDriverOptions {
 export class PlayerDriver {
   readonly player: PlayerObject
   transition: number
+  /** What pokes do; null (the default) turns reactions off. */
+  reactions: ReactionSet | null = null
 
   private _animation: PlayerAnimation | null = null
   private _reducedMotion = false
@@ -26,6 +44,12 @@ export class PlayerDriver {
   private from: PoseSnapshot | null = null
   private transitionTime = 0
   private layeredLastFrame = false
+  private clock = 0
+  private pokeTimes: number[] = []
+  private active: ActiveReaction[] = []
+  private flash = 0
+  private readonly beneath: PoseSnapshot = new Map()
+  private readonly tint = new Color()
 
   constructor(player: PlayerObject, options: PlayerDriverOptions = {}) {
     this.player = player
@@ -79,7 +103,24 @@ export class PlayerDriver {
     this.transitionTime = 0
   }
 
+  /** Reacts to a poke on `part`; `away` points away from the viewer in the player's parent space. */
+  poke(part: PokePart, away: Vector3): void {
+    const set = this.reactions
+    if (!set) return
+    this.pokeTimes = this.pokeTimes.filter((time) => this.clock - time < ANNOYED_WINDOW)
+    this.pokeTimes.push(this.clock)
+    const annoyed = this.pokeTimes.length >= ANNOYED_POKES
+    if (annoyed) this.pokeTimes = []
+    this.flash = FLASH_SECONDS
+    const ctx = { part, away: away.clone() }
+    for (const reaction of [set.any, annoyed ? set.annoyed : partReaction(set, part)]) {
+      if (!reaction || (reaction.motion && this._reducedMotion)) continue
+      this.active.push({ reaction, ctx, time: 0 })
+    }
+  }
+
   update(deltaSeconds: number): void {
+    this.clock += deltaSeconds
     if (this.layeredLastFrame) restorePose(this.base)
 
     const animation = this._animation
@@ -91,8 +132,19 @@ export class PlayerDriver {
       }
     }
 
-    const layered = this.from !== null
+    const layered = this.from !== null || this.active.length > 0
     if (layered) capturePose(this.player, this.base)
+
+    for (const entry of this.active) {
+      entry.time += deltaSeconds
+      const { reaction, ctx, time } = entry
+      if (time >= reaction.duration) continue
+      const weight = Math.min(1, time / REACTION_FADE, (reaction.duration - time) / REACTION_FADE)
+      capturePose(this.player, this.beneath)
+      reaction.apply(this.player, time, ctx)
+      blendFrom(this.beneath, weight)
+    }
+    this.active = this.active.filter((entry) => entry.time < entry.reaction.duration)
 
     if (this.from) {
       this.transitionTime += deltaSeconds
@@ -101,12 +153,24 @@ export class PlayerDriver {
       else blendFrom(this.from, easeOut(t))
     }
 
+    this.applyFlash(deltaSeconds)
     capturePose(this.player, this.shown)
     this.layeredLastFrame = layered
+  }
+
+  private applyFlash(deltaSeconds: number): void {
+    if (this.flash <= 0) return
+    const strength = this.flash / FLASH_SECONDS
+    this.player.setTint(this.tint.setRGB(1, 1, 1).lerp(FLASH_COLOR, strength))
+    this.flash = Math.max(0, this.flash - deltaSeconds)
+    if (this.flash === 0) this.player.setTint(null)
   }
 
   dispose(): void {
     this._animation?.stop(this.player)
     this.from = null
+    this.active = []
+    this.flash = 0
+    this.player.setTint(null)
   }
 }
