@@ -5,6 +5,7 @@ import { getPixel, setPixel, type Rgba } from './pixels.js'
 import { transparentSkin } from './testPixels.js'
 
 const RED: Rgba = [255, 0, 0, 255]
+const BLUE: Rgba = [0, 0, 255, 255]
 
 describe('normalizeEars', () => {
   it.each([
@@ -21,7 +22,9 @@ describe('normalizeEars', () => {
     [16, 8],
     [0, 0],
   ])('rejects %dx%d with kind ears', (w, h) => {
-    expect(() => normalizeEars(transparentSkin(w, h))).toThrow(TextureFormatError)
+    const attempt = () => normalizeEars(transparentSkin(w, h))
+    expect(attempt).toThrow(TextureFormatError)
+    expect(attempt).toThrow(expect.objectContaining({ kind: 'ears' }))
   })
 })
 
@@ -30,12 +33,17 @@ describe('earsFromSkin', () => {
     const skin = transparentSkin(64)
     setPixel(skin, 24, 0, RED)
     setPixel(skin, 37, 6, RED)
-    setPixel(skin, 38, 0, RED) // just outside the region
+    // Neighbours just outside the region on each side must not shift in.
+    setPixel(skin, 23, 1, BLUE)
+    setPixel(skin, 38, 1, BLUE)
+    setPixel(skin, 30, 7, BLUE)
     const { pixels, scale } = earsFromSkin(skin)
     expect(scale).toBe(1)
     expect(getPixel(pixels, 0, 0)).toEqual(RED)
     expect(getPixel(pixels, 13, 6)).toEqual(RED)
-    expect(getPixel(pixels, 13, 0)[3]).toBe(0)
+    expect(getPixel(pixels, 0, 1)[3]).toBe(0)
+    expect(getPixel(pixels, 13, 1)[3]).toBe(0)
+    expect(getPixel(pixels, 6, 6)[3]).toBe(0)
   })
 
   it('copies (48,0,28,14) of a 128×128 skin', () => {

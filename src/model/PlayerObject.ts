@@ -13,7 +13,7 @@ import {
   type PartLayout,
   type PartName,
 } from './layout.js'
-import { accessoryMaterial, innerMaterial, outerMaterial } from './materials.js'
+import { accessoryMaterial, innerMaterial, outerMaterial, type Bias } from './materials.js'
 import { applyBoxUV, boxUV } from './uv.js'
 
 export type BackEquipment = 'cape' | 'elytra'
@@ -65,37 +65,35 @@ export class SkinObject extends Group {
   readonly leftArm: BodyPart
   readonly rightLeg: BodyPart
   readonly leftLeg: BodyPart
-  private readonly materials = [
-    innerMaterial(false),
-    outerMaterial(false),
-    innerMaterial(true),
-    outerMaterial(true),
-  ] as const
+  private readonly materials = ([0, 1, 2] as const).map((bias) => ({
+    inner: innerMaterial(bias),
+    outer: outerMaterial(bias),
+  }))
   private _modelType: ModelType = 'classic'
   private _map: Texture | null = null
 
   constructor() {
     super()
     this.name = 'skin'
-    const [inner, outer, innerLimb, outerLimb] = this.materials
-    const part = (name: PartName, limb: boolean) =>
-      new BodyPart(
-        name,
-        partLayout(name, this._modelType),
-        limb ? innerLimb : inner,
-        limb ? outerLimb : outer,
-      )
-    this.head = part('head', false)
-    this.body = part('body', false)
-    this.rightArm = part('rightArm', true)
-    this.leftArm = part('leftArm', true)
-    this.rightLeg = part('rightLeg', true)
-    this.leftLeg = part('leftLeg', true)
+    const part = (name: PartName, bias: Bias) => {
+      const { inner, outer } = this.materials[bias]!
+      return new BodyPart(name, partLayout(name, this._modelType), inner, outer)
+    }
+    this.head = part('head', 0)
+    this.body = part('body', 0)
+    this.rightArm = part('rightArm', 1)
+    this.leftArm = part('leftArm', 1)
+    this.rightLeg = part('rightLeg', 1)
+    this.leftLeg = part('leftLeg', 2)
     this.add(...this.parts())
   }
 
   parts(): BodyPart[] {
     return PART_NAMES.map((name) => this[name])
+  }
+
+  private allMaterials() {
+    return this.materials.flatMap(({ inner, outer }) => [inner, outer])
   }
 
   get modelType(): ModelType {
@@ -115,7 +113,7 @@ export class SkinObject extends Group {
 
   set map(texture: Texture | null) {
     this._map = texture
-    for (const material of this.materials) {
+    for (const material of this.allMaterials()) {
       material.map = texture
       material.needsUpdate = true
     }
@@ -134,7 +132,7 @@ export class SkinObject extends Group {
       part.inner.geometry.dispose()
       part.outer.geometry.dispose()
     }
-    for (const material of this.materials) material.dispose()
+    for (const material of this.allMaterials()) material.dispose()
   }
 }
 

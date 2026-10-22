@@ -157,17 +157,18 @@ new NameTagObject('Steve', { font: '48px monospace', textStyle: 'yellow' })
 The concepts and most names carry over, so moving is largely mechanical. The
 differences:
 
-| skinview3d                                  | blockskin                                                     |
-| ------------------------------------------- | ------------------------------------------------------------- |
-| `model: 'default'`                          | `model: 'classic'`                                            |
-| `loadSkin(image)` returns `void` for images | every `load*` returns a Promise                               |
-| FXAA post-processing                        | the renderer's own multisample anti-aliasing (`antialias`)    |
-| sets `ColorManagement.enabled = false`      | leaves global three state alone                               |
-| bundles the Minecraft font                  | bring your own font for name tags                             |
-| slim arms level with classic ones           | slim arms half a pixel lower, as in the game                  |
-| `BodyPart.innerLayer` / `outerLayer`        | `BodyPart.inner` / `outer`                                    |
-| `WalkingAnimation` turns the head           | the head stays still unless `{ lookAround: true }`            |
-| `new WaveAnimation('right')`                | the same, or `{ arm: 'right' }`; both default to the left arm |
+| skinview3d                                               | blockskin                                                                           |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `model: 'default'`                                       | `model: 'classic'`                                                                  |
+| `loadSkin(image)` returns `void` for images              | every `load*` returns a Promise                                                     |
+| FXAA post-processing                                     | the renderer's own multisample anti-aliasing (`antialias`)                          |
+| sets `ColorManagement.enabled = false`                   | leaves global three state alone                                                     |
+| bundles the Minecraft font                               | bring your own font for name tags                                                   |
+| slim arms level with classic ones                        | slim arms half a pixel lower, as in the game                                        |
+| `BodyPart.innerLayer` / `outerLayer`                     | `BodyPart.inner` / `outer`                                                          |
+| `WalkingAnimation` turns the head                        | the head stays still unless `{ lookAround: true }`                                  |
+| `new WaveAnimation('right')`                             | the same, or `{ arm: 'right' }`; both default to the left arm                       |
+| `cameraLight` 0.6, fading with distance (barely visible) | `cameraLight` 0 by default with no falloff; try 0.3 to 1 for view-following shading |
 
 ## Development
 

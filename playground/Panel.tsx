@@ -11,8 +11,9 @@ interface PanelProps {
 }
 
 export function Panel({ state, set, onFile, onScreenshot, error }: PanelProps) {
-  const num = (key: 'fov' | 'zoom' | 'speed') => (e: ChangeEvent<HTMLInputElement>) =>
-    set({ [key]: Number(e.target.value) })
+  const num =
+    (key: 'fov' | 'zoom' | 'speed' | 'cameraLight') => (e: ChangeEvent<HTMLInputElement>) =>
+      set({ [key]: Number(e.target.value) })
   const check = (key: 'paused' | 'upsideDown' | 'panorama' | 'autoRotate' | 'controls') => (
     <label>
       <input
@@ -49,6 +50,14 @@ export function Panel({ state, set, onFile, onScreenshot, error }: PanelProps) {
             onChange={() => set({ mode: 'vanilla' })}
           />{' '}
           vanilla SkinViewer
+        </label>
+        <label>
+          <input
+            type="radio"
+            checked={state.mode === 'player'}
+            onChange={() => set({ mode: 'player' })}
+          />{' '}
+          MinecraftPlayer, own canvas (demand)
         </label>
       </fieldset>
       <fieldset>
@@ -193,6 +202,18 @@ export function Panel({ state, set, onFile, onScreenshot, error }: PanelProps) {
             onChange={num('zoom')}
           />{' '}
           {state.zoom}
+        </label>
+        <label>
+          camera light{' '}
+          <input
+            type="range"
+            min={0}
+            max={2}
+            step={0.1}
+            value={state.cameraLight}
+            onChange={num('cameraLight')}
+          />{' '}
+          {state.cameraLight}
         </label>
         {check('autoRotate')}
         {check('controls')}

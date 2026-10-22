@@ -25,10 +25,19 @@ describe('normalizeCape', () => {
     expect(getPixel(result.pixels, w - 1, h - 1)).toEqual(RED)
   })
 
+  it('accepts any 2:1 size, as skinview3d does', () => {
+    const src = transparentSkin(100, 50)
+    setPixel(src, 99, 49, RED)
+    const result = normalizeCape(src)
+    expect(result.scale).toBeCloseTo(100 / 64)
+    expect([result.pixels.width, result.pixels.height]).toEqual([100, 50])
+    expect(getPixel(result.pixels, 99, 49)).toEqual(RED)
+  })
+
   it.each([
     [50, 30],
     [0, 0],
-    [66, 33],
+    [66, 34],
   ])('rejects %dx%d', (w, h) => {
     expect(() => normalizeCape(transparentSkin(w, h))).toThrow(TextureFormatError)
   })

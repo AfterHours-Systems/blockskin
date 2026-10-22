@@ -80,7 +80,13 @@ export class SkinViewer {
   /** Spins for auto-rotate. */
   readonly playerWrapper = new Group()
   readonly globalLight = new AmbientLight(0xffffff, 3)
-  readonly cameraLight = new PointLight(0xffffff, 0.6)
+  /**
+   * A light that rides with the camera, for shading that follows the view.
+   * It has no distance falloff so its intensity means the same at any zoom.
+   * Off by default: skinview3d's 0.6 at the usual distance contributed
+   * almost nothing, and the default look matches it.
+   */
+  readonly cameraLight = new PointLight(0xffffff, 0, 0, 0)
 
   autoRotate = false
   /** Radians per second. */
@@ -247,6 +253,8 @@ export class SkinViewer {
   }
 
   loadSkin(input: ImageInput | null, options: SkinLoadOptions = {}): Promise<void> {
+    // Ears from this skin replace any standalone ears still loading.
+    if (options.ears) this.loads.ears.cancel()
     return this.loads
       .skin(async (signal) => {
         await loadSkinInto(

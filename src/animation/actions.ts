@@ -58,12 +58,17 @@ export class CrouchAnimation extends PlayerAnimation {
    */
   showProgress = false
   private hitSpeed: number | null = null
-  private hitStart = 0
+  private hitProgress = 0
 
-  /** Punch while crouching; the hit runs at `speed` relative to this animation. */
-  addHitAnimation(speed: number = 1): void {
+  /**
+   * Punch while crouching. `speed` is the hit's own speed and defaults to
+   * this animation's current speed, as in skinview3d. The hit keeps its own
+   * clock, so changing `speed` later never makes it jump; at speed 0 both
+   * stop.
+   */
+  addHitAnimation(speed: number = this.speed): void {
     this.hitSpeed = speed
-    this.hitStart = this.progress
+    this.hitProgress = 0
   }
 
   private depth(): number {
@@ -73,7 +78,7 @@ export class CrouchAnimation extends PlayerAnimation {
     return (1 - Math.cos(cycle * Math.PI * 2)) / 2
   }
 
-  protected animate(player: PlayerObject): void {
+  protected animate(player: PlayerObject, delta: number): void {
     const d = this.depth()
     const { head, body, rightArm, leftArm, rightLeg, leftLeg } = player.skin
     // The game's sneak pose, scaled by depth: the body leans forward around
@@ -107,8 +112,10 @@ export class CrouchAnimation extends PlayerAnimation {
     leftWing.position.y = -3 * d
     player.elytra.updateRightWing()
 
-    if (this.hitSpeed !== null && this.speed !== 0) {
-      applyHit(player, ((this.progress - this.hitStart) * this.hitSpeed) / this.speed, d)
+    if (this.hitSpeed !== null) {
+      // delta is real time scaled by this.speed; undo that, apply the hit's own.
+      if (this.speed !== 0) this.hitProgress += (delta / this.speed) * this.hitSpeed
+      applyHit(player, this.hitProgress, d)
     }
   }
 }

@@ -1,3 +1,4 @@
+import { Canvas } from '@react-three/fiber'
 import { StrictMode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
@@ -6,7 +7,7 @@ import {
   type ImageInput,
   type PlayerObject,
 } from '../src/index.js'
-import { SkinViewer, type SkinViewerHandle } from '../src/react/index.js'
+import { MinecraftPlayer, SkinViewer, type SkinViewerHandle } from '../src/react/index.js'
 import { debugEars, debugPanorama } from './fixtures.js'
 import { Panel } from './Panel.js'
 import {
@@ -84,6 +85,7 @@ function ReactView({ state, skin, cape, panorama, onError, onLoad, apiRef }: Vie
       autoRotate={state.autoRotate}
       autoRotateSpeed={0.8}
       controls={state.controls}
+      cameraLightIntensity={state.cameraLight}
       onError={onError}
       onLoad={onLoad}
     />
@@ -148,22 +150,19 @@ function VanillaView({ state, skin, cape, panorama, onError, onLoad, apiRef }: V
     viewer.animation.paused = state.paused
   }, [viewer, state.animation, state.speed, state.paused])
   useEffect(() => {
+    if (viewer) viewer.nameTag = state.nameTag || null
+  }, [viewer, state.nameTag])
+  useEffect(() => {
+    if (viewer) viewer.cameraLight.intensity = state.cameraLight
+  }, [viewer, state.cameraLight])
+  useEffect(() => {
     if (!viewer) return
-    viewer.nameTag = state.nameTag || null
     viewer.playerObject.upsideDown = state.upsideDown
     viewer.fov = state.fov
     viewer.zoom = state.zoom
     viewer.autoRotate = state.autoRotate
     viewer.controls.enabled = state.controls
-  }, [
-    viewer,
-    state.nameTag,
-    state.upsideDown,
-    state.fov,
-    state.zoom,
-    state.autoRotate,
-    state.controls,
-  ])
+  }, [viewer, state.upsideDown, state.fov, state.zoom, state.autoRotate, state.controls])
   useEffect(() => {
     if (!viewer) return
     if (panorama) viewer.loadPanorama(panorama).catch(onError)
@@ -171,6 +170,47 @@ function VanillaView({ state, skin, cape, panorama, onError, onLoad, apiRef }: V
   }, [viewer, panorama, state.background, onError])
 
   return <canvas ref={canvasRef} style={{ imageRendering: 'pixelated', display: 'block' }} />
+}
+
+// The player alone in a canvas that only redraws on demand, the way an app
+// embedding <MinecraftPlayer> in its own scene might run it.
+function PlayerView({ state, skin, cape, onError, onLoad, apiRef }: ViewProps) {
+  const player = useRef<PlayerObject>(null)
+  const canvas = useRef<HTMLCanvasElement>(null)
+  const ears = useMemo(() => earsInput(state.ears), [state.ears])
+  useEffect(() => {
+    apiRef.current = {
+      player: () => player.current,
+      screenshot: () => canvas.current!.toDataURL(),
+    }
+  }, [apiRef])
+  return (
+    <Canvas
+      ref={canvas}
+      flat
+      frameloop="demand"
+      gl={{ alpha: true, preserveDrawingBuffer: true }}
+      camera={{ fov: state.fov, position: [0, 0, 46] }}
+      style={{ width: WIDTH, height: HEIGHT, imageRendering: 'pixelated' }}
+    >
+      <ambientLight intensity={3} />
+      <group position={[0, -16, 0]}>
+        <MinecraftPlayer
+          ref={player}
+          skin={skin}
+          model={state.model}
+          cape={cape}
+          backEquipment={state.back === 'elytra' ? 'elytra' : state.back === 'cape' ? 'cape' : null}
+          ears={ears}
+          layers={layersFromHidden(state.hidden)}
+          nameTag={state.nameTag || null}
+          upsideDown={state.upsideDown}
+          onError={onError}
+          onLoad={onLoad}
+        />
+      </group>
+    </Canvas>
+  )
 }
 
 function App() {
@@ -219,6 +259,8 @@ function App() {
       <div id="viewer" style={{ width: WIDTH, height: HEIGHT }}>
         {state.mode === 'react' ? (
           <ReactView key="react" {...props} />
+        ) : state.mode === 'player' ? (
+          <PlayerView key="player" {...props} />
         ) : (
           <VanillaView key="vanilla" {...props} />
         )}

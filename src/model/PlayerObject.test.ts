@@ -1,4 +1,12 @@
-import { Box3, Vector3, type BufferGeometry, type Material, type Mesh, type Texture } from 'three'
+import {
+  Box3,
+  Vector3,
+  type BufferGeometry,
+  type Material,
+  type Mesh,
+  type MeshStandardMaterial,
+  type Texture,
+} from 'three'
 import { describe, expect, it, vi } from 'vitest'
 import { setPixel } from '../format/pixels.js'
 import { opaqueSkin, paint, transparentSkin } from '../format/testPixels.js'
@@ -182,5 +190,27 @@ describe('PlayerObject', () => {
     const spies = [...disposables].map((d) => vi.spyOn(d, 'dispose'))
     player.dispose()
     for (const spy of spies) expect(spy).toHaveBeenCalled()
+  })
+
+  it('biases the two legs differently so their overlapping faces do not fight', () => {
+    const { skin } = new PlayerObject()
+    const offset = (part: BodyPart, layer: 'inner' | 'outer') => {
+      const material = part[layer].material as Material
+      return material.polygonOffset ? material.polygonOffsetUnits : 0
+    }
+    for (const layer of ['inner', 'outer'] as const) {
+      expect(offset(skin.leftLeg, layer)).not.toBe(offset(skin.rightLeg, layer))
+      expect(offset(skin.rightLeg, layer)).not.toBe(offset(skin.body, layer))
+    }
+  })
+
+  it('updates every material when the skin texture changes', () => {
+    const player = new PlayerObject()
+    player.applySkin(classicSkin())
+    const map = player.skin.map
+    for (const part of player.skin.parts()) {
+      expect((part.inner.material as MeshStandardMaterial).map).toBe(map)
+      expect((part.outer.material as MeshStandardMaterial).map).toBe(map)
+    }
   })
 })

@@ -1,4 +1,4 @@
-import { useFrame, type ThreeElements } from '@react-three/fiber'
+import { useFrame, useThree, type ThreeElements } from '@react-three/fiber'
 import { useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react'
 import { Vector3 } from 'three'
 import type { PlayerAnimation } from '../animation/PlayerAnimation.js'
@@ -70,6 +70,9 @@ export function MinecraftPlayer({
     [],
   )
   const animationRef = useRef<PlayerAnimation | null>(null)
+  // Canvases with frameloop="demand" only redraw when asked; texture loads
+  // and the mutations below change nothing React can see.
+  const invalidate = useThree((state) => state.invalidate)
   const capeLoaded = useRef(false)
   const callbacks = useRef({ onLoad, onError, backEquipment })
   callbacks.current = { onLoad, onError, backEquipment }
@@ -101,11 +104,12 @@ export function MinecraftPlayer({
       .skin((signal) => loadSkinInto(player, skin, { model, ears: earsFromSkin }, signal))
       .then((result) => {
         if (result.stale) return
+        invalidate()
         setReady(result.value != null)
         if (result.value) callbacks.current.onLoad?.(result.value)
       })
       .catch(report)
-  }, [player, loads, skin, model, earsFromSkin])
+  }, [player, loads, skin, model, earsFromSkin, invalidate])
 
   const earsTexture = typeof ears === 'object' ? ears : null
   const earsOff = ears === false
@@ -121,12 +125,17 @@ export function MinecraftPlayer({
             signal,
           ),
         )
+        .then(() => invalidate())
         .catch(report)
+    } else if (ears === true) {
+      // The skin effect reads these ears; a standalone load still in flight
+      // must not land on top of them.
+      loads.ears.cancel()
     } else if (earsOff) {
-      void loads.ears(async () => player.applyEars(null))
+      void loads.ears(async () => player.applyEars(null)).then(() => invalidate())
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player, loads, earsTexture?.source, earsTexture?.textureType, earsOff])
+  }, [player, loads, earsTexture?.source, earsTexture?.textureType, earsOff, earsFromSkin])
 
   useEffect(() => {
     if (!player) return
@@ -135,10 +144,12 @@ export function MinecraftPlayer({
         loadBackEquipment(player, cape, () => callbacks.current.backEquipment, signal),
       )
       .then((result) => {
-        if (!result.stale) capeLoaded.current = cape !== null
+        if (result.stale) return
+        capeLoaded.current = cape !== null
+        invalidate()
       })
       .catch(report)
-  }, [player, loads, cape])
+  }, [player, loads, cape, invalidate])
 
   useEffect(() => {
     if (player && capeLoaded.current) player.backEquipment = backEquipment
@@ -171,6 +182,11 @@ export function MinecraftPlayer({
       animationRef.current = next
     }
   }, [player, animation])
+
+  // Declared last so it runs after every other effect of a commit.
+  useEffect(() => {
+    invalidate()
+  })
 
   useFrame((_, delta) => {
     if (!player) return

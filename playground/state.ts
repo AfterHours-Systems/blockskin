@@ -2,7 +2,8 @@ import type { AnimationName, ImageInput, PartName } from '../src/index.js'
 import { debugCape, debugEars, debugSkin } from './fixtures.js'
 
 export interface PlaygroundState {
-  mode: 'react' | 'vanilla'
+  /** 'player' is MinecraftPlayer in its own <Canvas frameloop="demand">. */
+  mode: 'react' | 'vanilla' | 'player'
   /** 'debug', 'debug-slim', 'debug-legacy', 'debug-hd', 'name:<player>' or a URL. */
   skin: string
   model: 'auto-detect' | 'classic' | 'slim'
@@ -19,6 +20,7 @@ export interface PlaygroundState {
   /** '' for transparent. */
   background: string
   panorama: boolean
+  cameraLight: number
   fov: number
   zoom: number
   autoRotate: boolean
@@ -40,6 +42,7 @@ export const DEFAULT_STATE: PlaygroundState = {
   upsideDown: false,
   background: '',
   panorama: false,
+  cameraLight: 0,
   fov: 50,
   zoom: 0.85,
   autoRotate: true,

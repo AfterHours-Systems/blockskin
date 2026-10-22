@@ -137,7 +137,8 @@ function Stage({
   const { gl, scene, camera } = useThree()
   const wrapper = useRef<Group>(null)
   const dragging = useRef(false)
-  const cameraLight = useMemo(() => new PointLight(0xffffff), [])
+  // No distance falloff, so the intensity means the same at any zoom.
+  const cameraLight = useMemo(() => new PointLight(0xffffff, 0, 0, 0), [])
   const loadBackground = useMemo(() => createLatestWins(), [])
 
   internals.current = { gl, scene, camera }
@@ -244,7 +245,7 @@ export function SkinViewer({
   preserveDrawingBuffer = false,
   renderPaused = false,
   globalLightIntensity = 3,
-  cameraLightIntensity = 0.6,
+  cameraLightIntensity = 0,
   children,
   ref,
   ...playerProps

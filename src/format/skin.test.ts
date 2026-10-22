@@ -45,6 +45,28 @@ describe('normalizeSkin', () => {
     expect([result.pixels.width, result.pixels.height]).toEqual([w, w])
   })
 
+  // Every legacy mirror: source rect (right limb) → target corner (left
+  // limb). A pixel in the source's top-left lands in the target's top-right.
+  it.each([
+    [4, 16, 4, 20, 48],
+    [8, 16, 4, 24, 48],
+    [0, 20, 4, 24, 52],
+    [4, 20, 4, 20, 52],
+    [8, 20, 4, 16, 52],
+    [12, 20, 4, 28, 52],
+    [44, 16, 4, 36, 48],
+    [48, 16, 4, 40, 48],
+    [40, 20, 4, 40, 52],
+    [44, 20, 4, 36, 52],
+    [48, 20, 4, 32, 52],
+    [52, 20, 4, 44, 52],
+  ])('mirrors legacy (%d,%d) to (%d+…) at (%d,%d)', (sx, sy, w, dx, dy) => {
+    const src = paint(skinWithTransparency(64, 32), sx, sy, 1, 1, RED)
+    const { pixels } = normalizeSkin(src)
+    expect(getPixel(pixels, dx + w - 1, dy)).toEqual(RED)
+    expect(getPixel(pixels, dx, dy)).toEqual(SKIN_TONE)
+  })
+
   it('mirrors the legacy right-leg front onto the left-leg front', () => {
     const src = paint(skinWithTransparency(64, 32), 4, 20, 1, 1, RED)
     expect(getPixel(normalizeSkin(src).pixels, 23, 52)).toEqual(RED)

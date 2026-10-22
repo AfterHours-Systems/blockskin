@@ -112,6 +112,49 @@ describe('CrouchAnimation', () => {
   })
 })
 
+describe('CrouchAnimation hit clock', () => {
+  const full = CROUCH_PERIOD * 0.75
+
+  function crouchingHit(speed = 1) {
+    const player = new PlayerObject()
+    const crouch = new CrouchAnimation()
+    crouch.speed = speed
+    crouch.runOnce = true
+    runTo(crouch, player, full)
+    crouch.addHitAnimation()
+    return { player, crouch }
+  }
+
+  it('does not jump when the crouch speed changes mid-hit', () => {
+    const { player, crouch } = crouchingHit()
+    crouch.update(player, HIT_PERIOD / 4)
+    const before = player.skin.rightArm.rotation.x
+    crouch.speed = 3
+    crouch.update(player, 0)
+    expect(player.skin.rightArm.rotation.x).toBeCloseTo(before, 10)
+  })
+
+  it('stops with the crouch at speed 0', () => {
+    const { player, crouch } = crouchingHit()
+    crouch.update(player, HIT_PERIOD / 4)
+    const before = player.skin.rightArm.rotation.x
+    crouch.speed = 0
+    crouch.update(player, 0.1)
+    expect(player.skin.rightArm.rotation.x).toBeCloseTo(before, 10)
+  })
+
+  it('runs at the crouch speed by default, as in skinview3d', () => {
+    const slow = crouchingHit(1)
+    const fast = crouchingHit(2)
+    slow.crouch.update(slow.player, HIT_PERIOD / 4)
+    fast.crouch.update(fast.player, HIT_PERIOD / 8)
+    expect(fast.player.skin.rightArm.rotation.x).toBeCloseTo(
+      slow.player.skin.rightArm.rotation.x,
+      10,
+    )
+  })
+})
+
 describe('createAnimation', () => {
   it.each(ANIMATION_NAMES)('creates %s', (name) => {
     const animation = createAnimation(name)
