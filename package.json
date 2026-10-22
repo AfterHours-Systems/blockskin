@@ -1,12 +1,26 @@
 {
   "name": "@afterhours-systems/blockskin",
-  "version": "0.0.0",
-  "description": "Minecraft skin viewer for three.js and React Three Fiber that uses your own three",
-  "type": "module",
+  "version": "0.1.0",
+  "description": "Minecraft skin viewer for three.js and React Three Fiber, built on your own three",
+  "keywords": [
+    "minecraft",
+    "skin",
+    "viewer",
+    "three",
+    "threejs",
+    "react-three-fiber",
+    "r3f",
+    "3d"
+  ],
   "license": "MIT",
+  "repository": "github:afterhours-systems/blockskin",
+  "homepage": "https://github.com/afterhours-systems/blockskin#readme",
+  "bugs": "https://github.com/afterhours-systems/blockskin/issues",
+  "type": "module",
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md"
   ],
   "exports": {
     ".": {
@@ -25,7 +39,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "dev": "vite",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepublishOnly": "pnpm test && pnpm build"
   },
   "peerDependencies": {
     "@react-three/fiber": "^9.0.0",
