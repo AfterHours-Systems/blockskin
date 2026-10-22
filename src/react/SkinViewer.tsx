@@ -25,6 +25,7 @@ import {
   type WebGLRenderer,
 } from 'three'
 import type { OrbitControls as ThreeOrbitControls } from 'three/addons/controls/OrbitControls.js'
+import type { PlayerDriver } from '../driver/PlayerDriver.js'
 import type { PlayerObject } from '../model/PlayerObject.js'
 import { loadTextureSource, type ImageInput } from '../textures/input.js'
 import { createLatestWins } from '../textures/sequence.js'
@@ -35,6 +36,8 @@ import { OrbitControls } from './OrbitControls.js'
 
 export interface SkinViewerHandle {
   readonly player: PlayerObject | null
+  /** The player's driver, for `poke()`, `lookAt()` or custom reactions. */
+  readonly driver: PlayerDriver | null
   /** Renders a frame and returns it as a data URL. */
   toDataURL(type?: string, quality?: number): string
   /** Renders a frame and returns it as a Blob. */
@@ -113,6 +116,7 @@ interface StageProps {
   internals: RefObject<Internals | null>
   controlsRef: RefObject<ThreeOrbitControls | null>
   playerRef: RefObject<PlayerObject | null>
+  driverRef: RefObject<PlayerDriver | null>
   playerProps: Omit<MinecraftPlayerProps, 'ref'>
   onError?: (error: unknown) => void
   children?: ReactNode
@@ -133,6 +137,7 @@ function Stage({
   internals,
   controlsRef,
   playerRef,
+  driverRef,
   playerProps,
   onError,
   children,
@@ -235,7 +240,12 @@ function Stage({
       <group ref={wrapper}>
         {/* Centres the player (feet at 0, head at 32) on the orbit target. */}
         <group position={[0, -16, 0]}>
-          <MinecraftPlayer {...playerProps} onError={onError} ref={playerRef} />
+          <MinecraftPlayer
+            {...playerProps}
+            onError={onError}
+            ref={playerRef}
+            driverRef={driverRef}
+          />
         </group>
       </group>
       {children}
@@ -270,6 +280,7 @@ export function SkinViewer({
   const internals = useRef<Internals | null>(null)
   const controlsRef = useRef<ThreeOrbitControls | null>(null)
   const playerRef = useRef<PlayerObject | null>(null)
+  const driverRef = useRef<PlayerDriver | null>(null)
   const deviceRatio = useDevicePixelRatio(pixelRatio === 'match-device')
   const framing = useRef({ fov, zoom })
   framing.current = { fov, zoom }
@@ -282,6 +293,9 @@ export function SkinViewer({
       return current.gl.domElement
     }
     return {
+      get driver() {
+        return driverRef.current
+      },
       get player() {
         return playerRef.current
       },
@@ -332,6 +346,7 @@ export function SkinViewer({
           internals={internals}
           controlsRef={controlsRef}
           playerRef={playerRef}
+          driverRef={driverRef}
           playerProps={playerProps}
           onError={playerProps.onError}
         >

@@ -2,7 +2,7 @@ import { Canvas, useThree } from '@react-three/fiber'
 import type { Camera } from 'three'
 import { StrictMode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import type { PokePart } from '../src/index.js'
+import type { PlayerDriver, PokePart } from '../src/index.js'
 import {
   createAnimation,
   SkinViewer as VanillaViewer,
@@ -29,6 +29,7 @@ interface Api {
   screenshot(): string
   viewer?: VanillaViewer
   camera?: () => Camera | undefined
+  driver?: () => PlayerDriver | null | undefined
 }
 
 declare global {
@@ -40,6 +41,7 @@ declare global {
       screenshot(): string
       viewer(): VanillaViewer | undefined
       camera(): Camera | undefined
+      driver(): PlayerDriver | null | undefined
       errors: string[]
       pokes: PokePart[]
       /** Pointer-ups reaching the group around the player in own-canvas mode. */
@@ -67,6 +69,7 @@ function ReactView({ state, skin, cape, panorama, onError, onLoad, onPoke, apiRe
     apiRef.current = {
       player: () => handle.current?.player ?? null,
       screenshot: () => handle.current!.toDataURL(),
+      driver: () => handle.current?.driver,
     }
   }, [apiRef])
   return (
@@ -312,6 +315,7 @@ function App() {
       screenshot: () => apiRef.current!.screenshot(),
       viewer: () => apiRef.current?.viewer,
       camera: () => apiRef.current?.camera?.() ?? apiRef.current?.viewer?.camera,
+      driver: () => apiRef.current?.driver?.() ?? apiRef.current?.viewer?.driver,
       errors: errors.current,
       pokes: pokes.current,
       ancestorUps: window.__playground?.ancestorUps ?? 0,

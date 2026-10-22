@@ -19,7 +19,7 @@ export interface Reaction {
 }
 
 /** The game's hurt knockback: a small step away from the viewer with a hop. */
-export const hurt: Reaction = {
+export const hurtReaction: Reaction = {
   duration: 0.4,
   motion: true,
   apply(player, t, { away }) {
@@ -29,7 +29,7 @@ export const hurt: Reaction = {
   },
 }
 
-export const shakeHead: Reaction = {
+export const shakeHeadReaction: Reaction = {
   duration: 0.6,
   motion: true,
   apply(player, t) {
@@ -39,7 +39,7 @@ export const shakeHead: Reaction = {
   },
 }
 
-export const waveBack: Reaction = {
+export const waveBackReaction: Reaction = {
   duration: 1,
   motion: true,
   apply(player, t, { part }) {
@@ -50,7 +50,7 @@ export const waveBack: Reaction = {
   },
 }
 
-export const jump: Reaction = {
+export const jumpReaction: Reaction = {
   duration: 0.5,
   motion: true,
   apply(player, t) {
@@ -59,7 +59,7 @@ export const jump: Reaction = {
 }
 
 /** Minecraft's crouch-spam "hello": in and out four times a second. */
-export const crouchSpam: Reaction = {
+export const crouchSpamReaction: Reaction = {
   duration: 2,
   motion: true,
   apply(player, t) {
@@ -81,12 +81,12 @@ export interface ReactionSet {
 }
 
 export const DEFAULT_REACTIONS: ReactionSet = {
-  any: hurt,
-  head: shakeHead,
+  any: hurtReaction,
+  head: shakeHeadReaction,
   body: null,
-  arm: waveBack,
-  leg: jump,
-  annoyed: crouchSpam,
+  arm: waveBackReaction,
+  leg: jumpReaction,
+  annoyed: crouchSpamReaction,
 }
 
 export function partReaction(set: ReactionSet, part: PokePart): Reaction | null | undefined {

@@ -63,6 +63,8 @@ export interface MinecraftPlayerProps extends Omit<
   onLoad?: (model: ModelType) => void
   onError?: (error: unknown) => void
   ref?: Ref<PlayerObject | null>
+  /** Receives the player's driver, for `poke()`, `lookAt()` or custom reactions. */
+  driverRef?: Ref<PlayerDriver | null>
 }
 
 const scratch = new Vector3()
@@ -90,6 +92,7 @@ export function MinecraftPlayer({
   onLoad,
   onError,
   ref,
+  driverRef,
   ...group
 }: MinecraftPlayerProps) {
   // Created inside an effect, not useMemo, so StrictMode's mount, unmount,
@@ -128,6 +131,7 @@ export function MinecraftPlayer({
   }, [loads])
 
   useImperativeHandle<PlayerObject | null, PlayerObject | null>(ref, () => player, [player])
+  useImperativeHandle<PlayerDriver | null, PlayerDriver | null>(driverRef, () => driver, [driver])
 
   const report = (error: unknown) => {
     if (error instanceof DOMException && error.name === 'AbortError') return

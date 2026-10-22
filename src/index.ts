@@ -39,11 +39,26 @@ export {
   type SkinLoadOptions,
   type SkinViewerOptions,
 } from './viewer/SkinViewer.js'
-export * from './driver/pose.js'
 export { PlayerDriver, type PlayerDriverOptions } from './driver/PlayerDriver.js'
-export * from './driver/reactions.js'
-export * from './interaction/poke.js'
-export * from './interaction/look.js'
+export {
+  DEFAULT_REACTIONS,
+  crouchSpamReaction,
+  hurtReaction,
+  jumpReaction,
+  shakeHeadReaction,
+  waveBackReaction,
+  type Reaction,
+  type ReactionContext,
+  type ReactionSet,
+} from './driver/reactions.js'
+export {
+  awayFromCamera,
+  findPokedPart,
+  partFromObject,
+  type PointerSample,
+  type PokePart,
+} from './interaction/poke.js'
+export { LOOK_LIMITS, lookAngles } from './interaction/look.js'
 export * from './model/shadow.js'
 export * from './nametag/format.js'
-export * from './interaction/motion.js'
+export { watchReducedMotion, type ReducedMotionMode } from './interaction/motion.js'
