@@ -1,9 +1,10 @@
 import { useFrame, useThree, type ThreeElements, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react'
-import { Vector3 } from 'three'
+import { Vector2, Vector3 } from 'three'
 import type { ModelType } from '../format/skin.js'
 import { PlayerDriver } from '../driver/PlayerDriver.js'
 import { DEFAULT_REACTIONS, type ReactionSet } from '../driver/reactions.js'
+import { addPointerListener, pointerTarget } from '../interaction/look.js'
 import {
   awayFromCamera,
   isPoke,
@@ -49,6 +50,8 @@ export interface MinecraftPlayerProps extends Omit<
   reactions?: boolean | ReactionSet
   /** Called for every poke, with the part that was hit, even with reactions off. */
   onPoke?: (part: PokePart) => void
+  /** Turn the head towards the pointer: anywhere on the page (true or 'window') or only over the canvas. Off by default. */
+  lookAtPointer?: boolean | 'window' | 'canvas'
   onLoad?: (model: ModelType) => void
   onError?: (error: unknown) => void
   ref?: Ref<PlayerObject | null>
@@ -72,6 +75,7 @@ export function MinecraftPlayer({
   transition = 0.25,
   reactions = false,
   onPoke,
+  lookAtPointer = false,
   onLoad,
   onError,
   ref,
@@ -92,6 +96,7 @@ export function MinecraftPlayer({
   // and the mutations below change nothing React can see.
   const invalidate = useThree((state) => state.invalidate)
   const camera = useThree((state) => state.camera)
+  const domElement = useThree((state) => state.gl.domElement)
   const pointerDown = useRef<PointerSample | null>(null)
   const capeLoaded = useRef(false)
   const callbacks = useRef({ onLoad, onError, backEquipment, onPoke })
@@ -204,6 +209,26 @@ export function MinecraftPlayer({
   useEffect(() => {
     if (driver) driver.transition = transition
   }, [driver, transition])
+
+  useEffect(() => {
+    if (!driver || !player || !lookAtPointer) return
+    const mode = lookAtPointer === true ? 'window' : lookAtPointer
+    const stop = addPointerListener(mode === 'window' ? window : domElement, (event) => {
+      const rect = domElement.getBoundingClientRect()
+      const ndc = new Vector2(
+        ((event.clientX - rect.left) / rect.width) * 2 - 1,
+        -((event.clientY - rect.top) / rect.height) * 2 + 1,
+      )
+      const head = player.skin.head.getWorldPosition(new Vector3())
+      const distance = camera.getWorldPosition(new Vector3()).distanceTo(head)
+      driver.lookAt(pointerTarget(camera, ndc, distance))
+      invalidate()
+    })
+    return () => {
+      stop()
+      driver.lookAt(null)
+    }
+  }, [driver, player, lookAtPointer, camera, domElement, invalidate])
 
   useEffect(() => {
     if (driver) driver.reactions = reactions === true ? DEFAULT_REACTIONS : reactions || null

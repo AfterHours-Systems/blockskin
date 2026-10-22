@@ -1,5 +1,6 @@
-import { Color, type Vector3 } from 'three'
+import { Color, Euler, Quaternion, Vector3 } from 'three'
 import type { PlayerAnimation } from '../animation/PlayerAnimation.js'
+import { lookAngles } from '../interaction/look.js'
 import type { PokePart } from '../interaction/poke.js'
 import type { PlayerObject } from '../model/PlayerObject.js'
 import { blendFrom, capturePose, easeOut, restorePose, type PoseSnapshot } from './pose.js'
@@ -11,6 +12,10 @@ const FLASH_COLOR = new Color(1, 0.45, 0.45)
 const REACTION_FADE = 0.08
 const ANNOYED_POKES = 5
 const ANNOYED_WINDOW = 3
+// The head follows the pointer until it has been still this long.
+const LOOK_IDLE = 2
+const LOOK_FADE = 0.4
+const LOOK_RATE = 10
 
 interface ActiveReaction {
   reaction: Reaction
@@ -50,6 +55,11 @@ export class PlayerDriver {
   private flash = 0
   private readonly beneath: PoseSnapshot = new Map()
   private readonly tint = new Color()
+  private lookTarget: Vector3 | null = null
+  private lastLook = -Infinity
+  private lookWeight = 0
+  private readonly look = { yaw: 0, pitch: 0 }
+  private readonly lookRotation = new Quaternion()
 
   constructor(player: PlayerObject, options: PlayerDriverOptions = {}) {
     this.player = player
@@ -105,7 +115,7 @@ export class PlayerDriver {
 
   /** Whether something is still playing out (a transition, a reaction or the flash). */
   get busy(): boolean {
-    return this.from !== null || this.active.length > 0 || this.flash > 0
+    return this.from !== null || this.active.length > 0 || this.flash > 0 || this.lookWeight > 0
   }
 
   /** Reacts to a poke on `part`; `away` points away from the viewer in the player's parent space. */
@@ -124,6 +134,16 @@ export class PlayerDriver {
     }
   }
 
+  /** Turns the head towards a world-space point; call again as it moves. null lets go. */
+  lookAt(target: Vector3 | null): void {
+    if (target) {
+      this.lookTarget = (this.lookTarget ?? new Vector3()).copy(target)
+      this.lastLook = this.clock
+    } else {
+      this.lastLook = -Infinity
+    }
+  }
+
   update(deltaSeconds: number): void {
     this.clock += deltaSeconds
     if (this.layeredLastFrame) restorePose(this.base)
@@ -137,7 +157,10 @@ export class PlayerDriver {
       }
     }
 
-    const layered = this.from !== null || this.active.length > 0
+    const looking = this.lookTarget !== null && this.clock - this.lastLook < LOOK_IDLE
+    const fade = deltaSeconds / LOOK_FADE
+    this.lookWeight = Math.min(1, Math.max(0, this.lookWeight + (looking ? fade : -fade)))
+    const layered = this.from !== null || this.active.length > 0 || this.lookWeight > 0
     if (layered) capturePose(this.player, this.base)
 
     for (const entry of this.active) {
@@ -151,6 +174,8 @@ export class PlayerDriver {
     }
     this.active = this.active.filter((entry) => entry.time < entry.reaction.duration)
 
+    if (this.lookWeight > 0 && this.lookTarget) this.applyLook(deltaSeconds)
+
     if (this.from) {
       this.transitionTime += deltaSeconds
       const t = this.transitionTime / this.transition
@@ -161,6 +186,17 @@ export class PlayerDriver {
     this.applyFlash(deltaSeconds)
     capturePose(this.player, this.shown)
     this.layeredLastFrame = layered
+  }
+
+  private applyLook(deltaSeconds: number): void {
+    const { head } = this.player.skin
+    const goal = lookAngles(head, this.lookTarget!)
+    // Ease towards the goal so the head never snaps to a jumping pointer.
+    const k = 1 - Math.exp(-LOOK_RATE * deltaSeconds)
+    this.look.yaw += (goal.yaw - this.look.yaw) * k
+    this.look.pitch += (goal.pitch - this.look.pitch) * k
+    this.lookRotation.setFromEuler(new Euler(this.look.pitch, this.look.yaw, 0, 'YXZ'))
+    head.quaternion.slerp(this.lookRotation, this.lookWeight)
   }
 
   private applyFlash(deltaSeconds: number): void {

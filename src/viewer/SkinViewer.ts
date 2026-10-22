@@ -20,6 +20,7 @@ import type { PlayerAnimation } from '../animation/PlayerAnimation.js'
 import type { ModelType } from '../format/skin.js'
 import { PlayerDriver } from '../driver/PlayerDriver.js'
 import { DEFAULT_REACTIONS, type ReactionSet } from '../driver/reactions.js'
+import { addPointerListener, pointerTarget } from '../interaction/look.js'
 import {
   awayFromCamera,
   findPokedPart,
@@ -77,6 +78,8 @@ export interface SkinViewerOptions {
   reactions?: boolean | ReactionSet
   /** Called for every poke, with the part that was hit, even with reactions off. */
   onPoke?: (part: PokePart) => void
+  /** Turn the head towards the pointer: anywhere on the page (true or 'window') or only over the canvas. Off by default. */
+  lookAtPointer?: boolean | 'window' | 'canvas'
   nameTag?: NameTagObject | string | null
   /** Multisample anti-aliasing. Defaults to true. */
   antialias?: boolean
@@ -189,6 +192,7 @@ export class SkinViewer {
 
     this.reactions = options.reactions ?? false
     this.onPoke = options.onPoke ?? null
+    this.lookAtPointer = options.lookAtPointer ?? false
     this.canvas.addEventListener('pointerdown', this.onPointerDown)
     this.canvas.addEventListener('pointerup', this.onPointerUp)
     this.canvas.addEventListener('webglcontextlost', this.onContextLost)
@@ -219,6 +223,37 @@ export class SkinViewer {
     if (!part) return
     this.onPoke?.(part)
     this.driver.poke(part, awayFromCamera(this.camera, this.playerObject))
+  }
+
+  private _lookAtPointer: false | 'window' | 'canvas' = false
+  private stopLooking: (() => void) | null = null
+
+  get lookAtPointer(): false | 'window' | 'canvas' {
+    return this._lookAtPointer
+  }
+
+  set lookAtPointer(value: boolean | 'window' | 'canvas') {
+    const mode = value === true ? 'window' : value
+    if (mode === this._lookAtPointer) return
+    this.stopLooking?.()
+    this.stopLooking = null
+    this._lookAtPointer = mode
+    if (!mode) {
+      this.driver.lookAt(null)
+      return
+    }
+    this.stopLooking = addPointerListener(mode === 'window' ? window : this.canvas, this.onLookMove)
+  }
+
+  private readonly onLookMove = (event: PointerEvent) => {
+    const rect = this.canvas.getBoundingClientRect()
+    // Outside the canvas these run past ±1, which is what window mode wants.
+    const ndc = new Vector2(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1,
+    )
+    const head = this.playerObject.skin.head.getWorldPosition(new Vector3())
+    this.driver.lookAt(pointerTarget(this.camera, ndc, this.camera.position.distanceTo(head)))
   }
 
   /** What pokes do: true for the default reactions, false for none, or your own set. */
@@ -546,6 +581,8 @@ export class SkinViewer {
     // disposed viewer.
     for (const load of Object.values(this.loads)) load.cancel()
     this.stopLoop()
+    this.stopLooking?.()
+    this.stopLooking = null
     this.canvas.removeEventListener('pointerdown', this.onPointerDown)
     this.canvas.removeEventListener('pointerup', this.onPointerUp)
     this.canvas.removeEventListener('webglcontextlost', this.onContextLost)

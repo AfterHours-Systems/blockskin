@@ -192,6 +192,14 @@ export function Panel({ state, set, onFile, onScreenshot, error, pokes }: PanelP
         </label>
         {check('paused')}
         {check('reactions')}
+        <select
+          value={state.lookAt}
+          onChange={(e) => set({ lookAt: e.target.value as PlaygroundState['lookAt'] })}
+        >
+          <option value="off">head: animation only</option>
+          <option value="window">head follows pointer (page)</option>
+          <option value="canvas">head follows pointer (canvas)</option>
+        </select>
         <div id="pokes">pokes: {pokes.join(', ')}</div>
       </fieldset>
       <fieldset>
