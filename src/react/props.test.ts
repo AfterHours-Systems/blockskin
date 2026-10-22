@@ -1,0 +1,64 @@
+import { describe, expect, it } from 'vitest'
+import { WalkingAnimation } from '../animation/locomotion.js'
+import { FunctionAnimation } from '../animation/PlayerAnimation.js'
+import { PlayerObject } from '../model/PlayerObject.js'
+import { applyLayers, resolveAnimation } from './props.js'
+
+describe('resolveAnimation', () => {
+  it('creates a built-in animation from its name', () => {
+    expect(resolveAnimation('walk', null)).toBeInstanceOf(WalkingAnimation)
+  })
+
+  it('keeps the running animation when the same name comes again', () => {
+    const walk = resolveAnimation('walk', null)
+    expect(resolveAnimation('walk', walk)).toBe(walk)
+  })
+
+  it('switches when the name changes', () => {
+    const walk = resolveAnimation('walk', null)
+    expect(resolveAnimation('run', walk)).not.toBe(walk)
+  })
+
+  it('returns a passed animation as is', () => {
+    const own = new WalkingAnimation()
+    expect(resolveAnimation(own, null)).toBe(own)
+  })
+
+  it('wraps a function, and keeps that wrapper when a new inline function arrives', () => {
+    const first = resolveAnimation(() => {}, null)
+    expect(first).toBeInstanceOf(FunctionAnimation)
+    const next = () => {}
+    const second = resolveAnimation(next, first)
+    expect(second).toBe(first)
+    expect((second as FunctionAnimation).fn).toBe(next)
+  })
+
+  it('does not reuse a function animation the caller made', () => {
+    const own = new FunctionAnimation(() => {})
+    expect(resolveAnimation(() => {}, own)).not.toBe(own)
+  })
+
+  it('returns null for null and undefined', () => {
+    expect(resolveAnimation(null, resolveAnimation('walk', null))).toBeNull()
+    expect(resolveAnimation(undefined, null)).toBeNull()
+  })
+})
+
+describe('applyLayers', () => {
+  it('hides only the named layers', () => {
+    const player = new PlayerObject()
+    applyLayers(player, { head: { outer: false }, leftLeg: { inner: false } })
+    expect(player.skin.head.outer.visible).toBe(false)
+    expect(player.skin.head.inner.visible).toBe(true)
+    expect(player.skin.leftLeg.inner.visible).toBe(false)
+    expect(player.skin.body.outer.visible).toBe(true)
+  })
+
+  it('shows everything again when layers is cleared', () => {
+    const player = new PlayerObject()
+    applyLayers(player, { body: { inner: false, outer: false } })
+    applyLayers(player, undefined)
+    expect(player.skin.body.inner.visible).toBe(true)
+    expect(player.skin.body.outer.visible).toBe(true)
+  })
+})
