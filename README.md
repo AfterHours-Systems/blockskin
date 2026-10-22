@@ -196,7 +196,19 @@ reaction for your own:
 
 ```js
 viewer.reactions = { ...DEFAULT_REACTIONS, head: myReaction, annoyed: null }
-// a Reaction is { duration, motion, apply(player, t, { part, away }) }
+// a Reaction is { duration, motion, apply(player, t, { part, away }) };
+// the built-ins are hurtReaction, shakeHeadReaction, waveBackReaction,
+// jumpReaction and crouchSpamReaction
+```
+
+**The driver.** Each player runs through a `PlayerDriver`, which plays the
+animation and layers transitions, reactions and the look on top. Reach it as
+`viewer.driver`, through the R3F `SkinViewer` handle's `driver`, or with
+`MinecraftPlayer`'s `driverRef`, to poke or point the head from code:
+
+```js
+driver.poke('head', away) // away: a unit vector pointing away from the viewer
+driver.lookAt(new Vector3(0, 30, 40)) // a world-space point; null lets go
 ```
 
 **Head follows the pointer.** `lookAtPointer` (or `'window'`) turns the head

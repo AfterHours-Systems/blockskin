@@ -9,6 +9,8 @@ import {
 } from './locomotion.js'
 import { PlayerAnimation } from './PlayerAnimation.js'
 
+const UNFOLD_SECONDS = 0.3
+
 export type ActionName = 'idle' | 'walk' | 'run' | 'fly' | 'swim' | 'wave' | 'crouch' | 'hit'
 
 export interface RandomAction {
@@ -75,6 +77,7 @@ export class RandomActions extends PlayerAnimation {
   private _current: ActionName | null = null
   private action: PlayerAnimation | null = null
   private remaining = 0
+  private elapsed = 0
   private takeOff: (() => void) | null = null
 
   constructor(options: RandomActionsOptions = {}) {
@@ -94,6 +97,15 @@ export class RandomActions extends PlayerAnimation {
     if (!this.action || this.remaining <= 0) this.next(player)
     this.action!.update(player, delta)
     this.remaining -= delta
+    this.elapsed += delta
+    if (this.takeOff) {
+      // Wings open over the first moments of a flight and close over the last.
+      player.elytraUnfold = Math.min(
+        1,
+        this.elapsed / UNFOLD_SECONDS,
+        this.remaining / UNFOLD_SECONDS,
+      )
+    }
   }
 
   private next(player: PlayerObject): void {
@@ -104,10 +116,14 @@ export class RandomActions extends PlayerAnimation {
     this._current = name
     this.action = ACTIONS[name]()
     this.remaining = this.minDuration + this.random() * (this.maxDuration - this.minDuration)
+    this.elapsed = 0
     // Each action starts from rest; the driver blends over from what was shown.
     player.resetPose()
     if (!first) this.markSwitch()
-    if (name === 'fly') this.takeOff = player.wearElytra()
+    if (name === 'fly') {
+      this.takeOff = player.wearElytra()
+      player.elytraUnfold = 0
+    }
   }
 
   stop(player: PlayerObject): void {

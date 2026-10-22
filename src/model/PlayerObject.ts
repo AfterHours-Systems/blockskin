@@ -318,6 +318,7 @@ export class PlayerObject extends Group {
   private _layers3d = false
   // Set while wearElytra() is in effect.
   private worn: WornElytra | null = null
+  private _elytraUnfold = 1
 
   constructor() {
     super()
@@ -492,6 +493,31 @@ export class PlayerObject extends Group {
     }
   }
 
+  /**
+   * How far a worn elytra has unfolded, 0 to 1. Below 1 the wings grow from
+   * the shoulders and a cape that was showing folds up out of the way, so
+   * putting on and taking off the elytra can be animated instead of popping.
+   */
+  get elytraUnfold(): number {
+    return this._elytraUnfold
+  }
+
+  set elytraUnfold(value: number) {
+    const unfold = Math.min(1, Math.max(0, value))
+    this._elytraUnfold = unfold
+    // A zero scale would make the matrices singular; keep a sliver.
+    this.elytra.scale.setScalar(Math.max(unfold, 1e-3))
+    const capeBehind = this.worn?.previous === 'cape' && this.hasCapeTexture
+    this.cape.visible = this._backEquipment === 'cape' || (capeBehind && unfold < 1)
+    this.cape.scale.y = capeBehind ? Math.max(1 - unfold, 1e-3) : 1
+  }
+
+  private resetUnfold(): void {
+    this._elytraUnfold = 1
+    this.elytra.scale.setScalar(1)
+    this.cape.scale.y = 1
+  }
+
   get hasCapeTexture(): boolean {
     return this.textures.cape !== null
   }
@@ -517,6 +543,7 @@ export class PlayerObject extends Group {
   private takeOffElytra(worn: WornElytra): void {
     if (this.worn !== worn) return
     this.worn = null
+    this.resetUnfold()
     if (worn.fallback) {
       if (this.capeMaterial.map === worn.fallback) {
         this.capeMaterial.map = this.textures.cape

@@ -150,4 +150,44 @@ describe('RandomActions', () => {
     if (random.current === 'fly') expect(driver.player.elytra.visible).toBe(true)
     else expect(driver.player.rotation.x).toBeCloseTo(0)
   })
+
+  it('unfolds the elytra at the start of a flight and folds it before the end', () => {
+    const player = new PlayerObject()
+    const animation = new RandomActions({
+      actions: flyFirst,
+      random: () => 0,
+      minDuration: 2,
+      maxDuration: 2,
+    })
+    animation.update(player, 0.03)
+    expect(animation.current).toBe('fly')
+    expect(player.elytra.scale.x).toBeLessThan(0.2)
+    run(animation, player, 0.6)
+    expect(player.elytra.scale.x).toBeCloseTo(1)
+    run(animation, player, 1.3)
+    expect(player.elytra.scale.x).toBeLessThan(0.5)
+    run(animation, player, 0.2)
+    expect(animation.current).toBe('idle')
+    expect(player.elytra.scale.x).toBe(1)
+  })
+
+  it('folds a cape away while the wings unfold, and back afterwards', () => {
+    const player = new PlayerObject()
+    player.applyCape(opaqueSkin(64, 32))
+    const animation = new RandomActions({
+      actions: flyFirst,
+      random: () => 0,
+      minDuration: 2,
+      maxDuration: 2,
+    })
+    run(animation, player, 0.1)
+    expect(player.cape.visible).toBe(true)
+    expect(player.cape.scale.y).toBeGreaterThan(0)
+    expect(player.cape.scale.y).toBeLessThan(1)
+    run(animation, player, 0.6)
+    expect(player.cape.visible).toBe(false)
+    run(animation, player, 1.5)
+    expect(player.backEquipment).toBe('cape')
+    expect(player.cape.scale.y).toBe(1)
+  })
 })
