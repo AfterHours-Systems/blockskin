@@ -77,6 +77,7 @@ function ReactView({ state, skin, cape, panorama, onError, onLoad, apiRef }: Vie
       animation={state.animation === 'none' ? null : state.animation}
       animationSpeed={state.speed}
       paused={state.paused}
+      transition={state.transition}
       upsideDown={state.upsideDown}
       background={state.background || null}
       panorama={panorama}
@@ -155,6 +156,9 @@ function VanillaView({ state, skin, cape, panorama, onError, onLoad, apiRef }: V
   useEffect(() => {
     if (viewer) viewer.cameraLight.intensity = state.cameraLight
   }, [viewer, state.cameraLight])
+  useEffect(() => {
+    if (viewer) viewer.transition = state.transition
+  }, [viewer, state.transition])
   useEffect(() => {
     if (!viewer) return
     viewer.playerObject.upsideDown = state.upsideDown

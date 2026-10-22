@@ -1,8 +1,8 @@
 import { useFrame, useThree, type ThreeElements } from '@react-three/fiber'
 import { useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react'
 import { Vector3 } from 'three'
-import type { PlayerAnimation } from '../animation/PlayerAnimation.js'
 import type { ModelType } from '../format/skin.js'
+import { PlayerDriver } from '../driver/PlayerDriver.js'
 import { PlayerObject, type BackEquipment } from '../model/PlayerObject.js'
 import { EARS_EXTRA, NAME_TAG_GAP } from '../nametag/layout.js'
 import { NameTagObject } from '../nametag/NameTagObject.js'
@@ -35,6 +35,8 @@ export interface MinecraftPlayerProps extends Omit<
   animationSpeed?: number
   paused?: boolean
   upsideDown?: boolean
+  /** Seconds to blend between animations; 0 snaps. Defaults to 0.25. */
+  transition?: number
   onLoad?: (model: ModelType) => void
   onError?: (error: unknown) => void
   ref?: Ref<PlayerObject | null>
@@ -55,6 +57,7 @@ export function MinecraftPlayer({
   animationSpeed,
   paused,
   upsideDown = false,
+  transition = 0.25,
   onLoad,
   onError,
   ref,
@@ -62,14 +65,15 @@ export function MinecraftPlayer({
 }: MinecraftPlayerProps) {
   // Created inside an effect, not useMemo, so StrictMode's mount, unmount,
   // mount cycle disposes the first player and renders a fresh one.
-  const [player, setPlayer] = useState<PlayerObject | null>(null)
+  const [rig, setRig] = useState<{ player: PlayerObject; driver: PlayerDriver } | null>(null)
+  const player = rig?.player ?? null
+  const driver = rig?.driver ?? null
   const [ready, setReady] = useState(false)
   const [tag, setTag] = useState<NameTagObject | null>(null)
   const loads = useMemo(
     () => ({ skin: createLatestWins(), cape: createLatestWins(), ears: createLatestWins() }),
     [],
   )
-  const animationRef = useRef<PlayerAnimation | null>(null)
   // Canvases with frameloop="demand" only redraw when asked; texture loads
   // and the mutations below change nothing React can see.
   const invalidate = useThree((state) => state.invalidate)
@@ -79,12 +83,14 @@ export function MinecraftPlayer({
 
   useEffect(() => {
     const created = new PlayerObject()
-    setPlayer(created)
+    const createdDriver = new PlayerDriver(created)
+    setRig({ player: created, driver: createdDriver })
     return () => {
       // Nothing still loading may apply to the disposed player or call back.
       for (const load of Object.values(loads)) load.cancel()
+      createdDriver.dispose()
       created.dispose()
-      setPlayer(null)
+      setRig(null)
       setReady(false)
     }
   }, [loads])
@@ -174,14 +180,14 @@ export function MinecraftPlayer({
   }, [nameTag])
 
   useEffect(() => {
-    if (!player) return
-    const next = resolveAnimation(animation, animationRef.current)
-    if (next !== animationRef.current) {
-      player.resetPose()
-      if (next) next.progress = 0
-      animationRef.current = next
-    }
-  }, [player, animation])
+    if (!driver) return
+    const next = resolveAnimation(animation, driver.animation)
+    if (next !== driver.animation) driver.animation = next
+  }, [driver, animation])
+
+  useEffect(() => {
+    if (driver) driver.transition = transition
+  }, [driver, transition])
 
   // Declared last so it runs after every other effect of a commit.
   useEffect(() => {
@@ -189,13 +195,13 @@ export function MinecraftPlayer({
   })
 
   useFrame((_, delta) => {
-    if (!player) return
-    const current = animationRef.current
+    if (!player || !driver) return
+    const current = driver.animation
     if (current) {
       if (animationSpeed !== undefined) current.speed = animationSpeed
       if (paused !== undefined) current.paused = paused
-      current.update(player, delta)
     }
+    driver.update(delta)
     if (tag) {
       const top = player.headTop(scratch)
       tag.position.set(top.x, top.y + NAME_TAG_GAP + (player.ears.visible ? EARS_EXTRA : 0), top.z)

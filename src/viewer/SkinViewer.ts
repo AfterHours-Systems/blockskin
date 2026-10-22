@@ -17,6 +17,7 @@ import {
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import type { PlayerAnimation } from '../animation/PlayerAnimation.js'
 import type { ModelType } from '../format/skin.js'
+import { PlayerDriver } from '../driver/PlayerDriver.js'
 import { PlayerObject, type BackEquipment } from '../model/PlayerObject.js'
 import { EARS_EXTRA, NAME_TAG_GAP } from '../nametag/layout.js'
 import { NameTagObject } from '../nametag/NameTagObject.js'
@@ -61,6 +62,8 @@ export interface SkinViewerOptions {
   zoom?: number
   enableControls?: boolean
   animation?: PlayerAnimation | null
+  /** Seconds to blend between animations; 0 snaps. Defaults to 0.25. */
+  transition?: number
   nameTag?: NameTagObject | string | null
   /** Multisample anti-aliasing. Defaults to true. */
   antialias?: boolean
@@ -77,6 +80,8 @@ export class SkinViewer {
   readonly renderer: WebGLRenderer
   readonly controls: OrbitControls
   readonly playerObject = new PlayerObject()
+  /** Runs the animation and everything layered on it. */
+  readonly driver: PlayerDriver
   /** Spins for auto-rotate. */
   readonly playerWrapper = new Group()
   readonly globalLight = new AmbientLight(0xffffff, 3)
@@ -101,7 +106,6 @@ export class SkinViewer {
     background: createLatestWins(),
   }
   private backgroundTexture: Texture | null = null
-  private _animation: PlayerAnimation | null = null
   private _nameTag: NameTagObject | null = null
   private ownsNameTag = false
   private _zoom: number
@@ -115,6 +119,7 @@ export class SkinViewer {
 
   constructor(options: SkinViewerOptions = {}) {
     this.canvas = options.canvas ?? document.createElement('canvas')
+    this.driver = new PlayerDriver(this.playerObject, { transition: options.transition })
     this.renderer = new WebGLRenderer({
       canvas: this.canvas,
       alpha: true,
@@ -228,7 +233,7 @@ export class SkinViewer {
   }
 
   private step(dt: number): void {
-    this._animation?.update(this.playerObject, dt)
+    this.driver.update(dt)
     this.placeNameTag()
     if (this.autoRotate && !(this.controls.enabled && this.dragging)) {
       this.playerWrapper.rotation.y += dt * this.autoRotateSpeed
@@ -345,17 +350,26 @@ export class SkinViewer {
   }
 
   get animation(): PlayerAnimation | null {
-    return this._animation
+    return this.driver.animation
   }
 
-  /** Switching animation resets the pose; the new animation starts from 0. */
+  /** Switching blends over from the current pose; the new animation starts from 0. */
   set animation(animation: PlayerAnimation | null) {
-    if (animation !== this._animation) {
-      this.playerObject.resetPose()
-      this.placeNameTag()
+    if (animation === this.driver.animation) {
+      if (animation) animation.progress = 0
+      return
     }
-    if (animation) animation.progress = 0
-    this._animation = animation
+    this.driver.animation = animation
+    this.placeNameTag()
+  }
+
+  /** Seconds to blend between animations; 0 snaps. */
+  get transition(): number {
+    return this.driver.transition
+  }
+
+  set transition(value: number) {
+    this.driver.transition = value
   }
 
   get nameTag(): NameTagObject | null {
@@ -488,6 +502,7 @@ export class SkinViewer {
     this.controls.dispose()
     this.nameTag = null
     this.background = null
+    this.driver.dispose()
     this.playerObject.dispose()
     this.renderer.dispose()
   }

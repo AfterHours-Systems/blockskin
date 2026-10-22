@@ -15,6 +15,7 @@ export interface PlaygroundState {
   nameTag: string
   animation: AnimationName | 'none'
   speed: number
+  transition: number
   paused: boolean
   upsideDown: boolean
   /** '' for transparent. */
@@ -38,6 +39,7 @@ export const DEFAULT_STATE: PlaygroundState = {
   nameTag: '',
   animation: 'walk',
   speed: 1,
+  transition: 0.25,
   paused: false,
   upsideDown: false,
   background: '',

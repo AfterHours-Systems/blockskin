@@ -12,7 +12,8 @@ interface PanelProps {
 
 export function Panel({ state, set, onFile, onScreenshot, error }: PanelProps) {
   const num =
-    (key: 'fov' | 'zoom' | 'speed' | 'cameraLight') => (e: ChangeEvent<HTMLInputElement>) =>
+    (key: 'fov' | 'zoom' | 'speed' | 'cameraLight' | 'transition') =>
+    (e: ChangeEvent<HTMLInputElement>) =>
       set({ [key]: Number(e.target.value) })
   const check = (key: 'paused' | 'upsideDown' | 'panorama' | 'autoRotate' | 'controls') => (
     <label>
@@ -173,6 +174,18 @@ export function Panel({ state, set, onFile, onScreenshot, error }: PanelProps) {
             value={state.speed}
             onChange={num('speed')}
           />
+        </label>
+        <label>
+          transition{' '}
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={state.transition}
+            onChange={num('transition')}
+          />{' '}
+          {state.transition}s
         </label>
         {check('paused')}
       </fieldset>
