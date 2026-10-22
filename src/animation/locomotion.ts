@@ -14,11 +14,39 @@ function swingLimbs(player: PlayerObject, phase: number, arm: number, leg: numbe
   leftLeg.rotation.x = -c * leg
 }
 
+export interface LocomotionOptions {
+  /** Let the head turn and nod gently. Off by default. */
+  lookAround?: boolean
+}
+
+// A slow look around, at periods unrelated to the limbs so it never looks
+// mechanical.
+function lookAround(player: PlayerObject, progress: number): void {
+  player.skin.head.rotation.y = Math.sin(progress * 2) * 0.2
+  player.skin.head.rotation.x = Math.sin(progress * 1.6) * 0.1
+}
+
+abstract class LocomotionAnimation extends PlayerAnimation {
+  lookAround: boolean
+
+  constructor(opts: LocomotionOptions = {}) {
+    super()
+    this.lookAround = opts.lookAround ?? false
+  }
+
+  protected abstract pose(player: PlayerObject): void
+
+  protected animate(player: PlayerObject): void {
+    this.pose(player)
+    if (this.lookAround) lookAround(player, this.progress)
+  }
+}
+
 export const IDLE_PERIOD = TAU / 1.8
 
 /** Standing still: arms drift slightly, as they do in the game. */
-export class IdleAnimation extends PlayerAnimation {
-  protected animate(player: PlayerObject): void {
+export class IdleAnimation extends LocomotionAnimation {
+  protected pose(player: PlayerObject): void {
     const t = this.progress
     const sway = 0.05 + 0.05 * Math.cos(t * 1.8)
     const drift = 0.05 * Math.sin(t * 1.34)
@@ -31,8 +59,8 @@ export class IdleAnimation extends PlayerAnimation {
 const WALK_SPEED = 8
 export const WALK_PERIOD = TAU / WALK_SPEED
 
-export class WalkingAnimation extends PlayerAnimation {
-  protected animate(player: PlayerObject): void {
+export class WalkingAnimation extends LocomotionAnimation {
+  protected pose(player: PlayerObject): void {
     const phase = this.progress * WALK_SPEED
     swingLimbs(player, phase, 0.5, 0.7)
     liftCape(player, 0.2 + 0.03 * Math.sin(phase * 2))
@@ -42,8 +70,8 @@ export class WalkingAnimation extends PlayerAnimation {
 const RUN_SPEED = 15
 export const RUN_PERIOD = TAU / RUN_SPEED
 
-export class RunningAnimation extends PlayerAnimation {
-  protected animate(player: PlayerObject): void {
+export class RunningAnimation extends LocomotionAnimation {
+  protected pose(player: PlayerObject): void {
     const phase = this.progress * RUN_SPEED
     swingLimbs(player, phase, 1.0, 1.3)
     // Sprinting leans the body into the run.

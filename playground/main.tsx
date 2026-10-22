@@ -24,6 +24,7 @@ const HEIGHT = 400
 interface Api {
   player(): PlayerObject | null
   screenshot(): string
+  viewer?: VanillaViewer
 }
 
 declare global {
@@ -33,6 +34,7 @@ declare global {
       set(patch: Partial<PlaygroundState>): void
       player(): PlayerObject | null
       screenshot(): string
+      viewer(): VanillaViewer | undefined
       errors: string[]
       loads: number
     }
@@ -101,7 +103,11 @@ function VanillaView({ state, skin, cape, panorama, onError, onLoad, apiRef }: V
     })
     created.autoRotateSpeed = 0.8
     setViewer(created)
-    apiRef.current = { player: () => created.playerObject, screenshot: () => created.toDataURL() }
+    apiRef.current = {
+      player: () => created.playerObject,
+      screenshot: () => created.toDataURL(),
+      viewer: created,
+    }
     return () => created.dispose()
   }, [apiRef, onError])
 
@@ -199,6 +205,7 @@ function App() {
       set,
       player: () => apiRef.current?.player() ?? null,
       screenshot: () => apiRef.current!.screenshot(),
+      viewer: () => apiRef.current?.viewer,
       errors: errors.current,
       get loads() {
         return loads.current

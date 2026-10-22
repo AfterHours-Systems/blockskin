@@ -5,7 +5,9 @@ import {
   type AnimationFn,
 } from '../animation/PlayerAnimation.js'
 import { PART_NAMES, type PartName } from '../model/layout.js'
-import type { PlayerObject } from '../model/PlayerObject.js'
+import type { BackEquipment, PlayerObject } from '../model/PlayerObject.js'
+import type { ImageInput } from '../textures/input.js'
+import { loadCapeInto, type PixelReader } from '../viewer/loadInto.js'
 
 export type AnimationProp = AnimationName | PlayerAnimation | AnimationFn | null | undefined
 
@@ -43,4 +45,20 @@ export function applyLayers(player: PlayerObject, layers: LayerVisibility | unde
     part.inner.visible = layers?.[name]?.inner ?? true
     part.outer.visible = layers?.[name]?.outer ?? true
   }
+}
+
+/**
+ * Loads a cape hidden, then shows whatever back equipment is wanted once it
+ * has arrived. Reading the choice after the load means a switch to elytra
+ * (or to none) made while the cape was loading is not lost.
+ */
+export async function loadBackEquipment(
+  player: PlayerObject,
+  input: ImageInput | null,
+  wanted: () => BackEquipment | null,
+  signal?: AbortSignal,
+  read?: PixelReader,
+): Promise<void> {
+  await loadCapeInto(player, input, { makeVisible: false }, signal, read)
+  player.backEquipment = input === null ? null : wanted()
 }

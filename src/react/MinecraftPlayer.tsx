@@ -8,8 +8,14 @@ import { EARS_EXTRA, NAME_TAG_GAP } from '../nametag/layout.js'
 import { NameTagObject } from '../nametag/NameTagObject.js'
 import type { ImageInput } from '../textures/input.js'
 import { createLatestWins } from '../textures/sequence.js'
-import { loadCapeInto, loadEarsInto, loadSkinInto } from '../viewer/loadInto.js'
-import { applyLayers, resolveAnimation, type AnimationProp, type LayerVisibility } from './props.js'
+import { loadEarsInto, loadSkinInto } from '../viewer/loadInto.js'
+import {
+  applyLayers,
+  loadBackEquipment,
+  resolveAnimation,
+  type AnimationProp,
+  type LayerVisibility,
+} from './props.js'
 
 export interface MinecraftPlayerProps extends Omit<
   ThreeElements['group'],
@@ -19,7 +25,8 @@ export interface MinecraftPlayerProps extends Omit<
   skin: ImageInput | null
   model?: ModelType | 'auto-detect'
   cape?: ImageInput | null
-  backEquipment?: BackEquipment
+  /** Which item the cape texture shows as; `null` hides it without unloading. */
+  backEquipment?: BackEquipment | null
   /** `true` shows the ears drawn on the skin. */
   ears?: boolean | { textureType: 'standalone' | 'skin'; source: ImageInput }
   layers?: LayerVisibility
@@ -63,6 +70,7 @@ export function MinecraftPlayer({
     [],
   )
   const animationRef = useRef<PlayerAnimation | null>(null)
+  const capeLoaded = useRef(false)
   const callbacks = useRef({ onLoad, onError, backEquipment })
   callbacks.current = { onLoad, onError, backEquipment }
 
@@ -70,11 +78,13 @@ export function MinecraftPlayer({
     const created = new PlayerObject()
     setPlayer(created)
     return () => {
+      // Nothing still loading may apply to the disposed player or call back.
+      for (const load of Object.values(loads)) load.cancel()
       created.dispose()
       setPlayer(null)
       setReady(false)
     }
-  }, [])
+  }, [loads])
 
   useImperativeHandle<PlayerObject | null, PlayerObject | null>(ref, () => player, [player])
 
@@ -122,13 +132,16 @@ export function MinecraftPlayer({
     if (!player) return
     loads
       .cape((signal) =>
-        loadCapeInto(player, cape, { backEquipment: callbacks.current.backEquipment }, signal),
+        loadBackEquipment(player, cape, () => callbacks.current.backEquipment, signal),
       )
+      .then((result) => {
+        if (!result.stale) capeLoaded.current = cape !== null
+      })
       .catch(report)
   }, [player, loads, cape])
 
   useEffect(() => {
-    if (player && player.backEquipment !== null) player.backEquipment = backEquipment
+    if (player && capeLoaded.current) player.backEquipment = backEquipment
   }, [player, backEquipment])
 
   useEffect(() => {

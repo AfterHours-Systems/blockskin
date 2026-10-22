@@ -7,9 +7,10 @@ export const WAVE_PERIOD = 1
 export class WaveAnimation extends PlayerAnimation {
   readonly arm: 'left' | 'right'
 
-  constructor(opts: { arm?: 'left' | 'right' } = {}) {
+  /** Accepts skinview3d's `new WaveAnimation('right')` form too. Defaults to the left arm, as there. */
+  constructor(opts: { arm?: 'left' | 'right' } | 'left' | 'right' = {}) {
     super()
-    this.arm = opts.arm ?? 'right'
+    this.arm = (typeof opts === 'string' ? opts : opts.arm) ?? 'left'
   }
 
   protected animate(player: PlayerObject): void {

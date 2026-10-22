@@ -92,6 +92,7 @@ export class SkinViewer {
     skin: createLatestWins(),
     cape: createLatestWins(),
     ears: createLatestWins(),
+    background: createLatestWins(),
   }
   private backgroundTexture: Texture | null = null
   private _animation: PlayerAnimation | null = null
@@ -298,14 +299,20 @@ export class SkinViewer {
     void this.loadEars(null)
   }
 
-  async loadBackground(input: ImageInput, mapping?: Mapping): Promise<void> {
-    const source = await loadTextureSource(input)
-    const texture = new Texture(source)
-    texture.colorSpace = SRGBColorSpace
-    if (mapping !== undefined) texture.mapping = mapping
-    texture.needsUpdate = true
-    this.background = texture
-    this.backgroundTexture = texture
+  /** Loads an image background; a later load or a set `background` supersedes it. */
+  loadBackground(input: ImageInput, mapping?: Mapping): Promise<void> {
+    return this.loads
+      .background(async (signal) => {
+        const source = await loadTextureSource(input, signal)
+        if (signal.aborted) return
+        const texture = new Texture(source)
+        texture.colorSpace = SRGBColorSpace
+        if (mapping !== undefined) texture.mapping = mapping
+        texture.needsUpdate = true
+        this.applyBackground(texture)
+        this.backgroundTexture = texture
+      })
+      .then(() => undefined)
   }
 
   loadPanorama(input: ImageInput): Promise<void> {
@@ -317,6 +324,11 @@ export class SkinViewer {
   }
 
   set background(value: ColorRepresentation | Texture | null) {
+    this.loads.background.cancel()
+    this.applyBackground(value)
+  }
+
+  private applyBackground(value: ColorRepresentation | Texture | null): void {
     if (this.backgroundTexture && value !== this.backgroundTexture) {
       this.backgroundTexture.dispose()
       this.backgroundTexture = null
@@ -456,6 +468,9 @@ export class SkinViewer {
 
   dispose(): void {
     this._disposed = true
+    // Loads still in flight must not apply to, or create textures for, a
+    // disposed viewer.
+    for (const load of Object.values(this.loads)) load.cancel()
     this.stopLoop()
     this.canvas.removeEventListener('webglcontextlost', this.onContextLost)
     this.canvas.removeEventListener('webglcontextrestored', this.onContextRestored)

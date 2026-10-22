@@ -7,7 +7,9 @@ Other viewers bundle or pin their own copy of three.js, so an app on a current
 three ends up loading two, and some change global three settings
 (`ColorManagement`) that leak into every other scene. blockskin takes `three`
 as a peer dependency, imports nothing from three's internals, and never touches
-global state. It does everything skinview3d 3.4 does, and runs on three r186
+global three state itself. (Mounting an R3F `<Canvas>`, including the one in
+blockskin's `SkinViewer`, lets R3F switch `ColorManagement` on, which is three's
+default anyway.) It does everything skinview3d 3.4 does, and runs on three r186
 and later.
 
 - 64×64 and legacy 64×32 skins, HD skins (any multiple of 64)
@@ -99,7 +101,8 @@ import { MinecraftPlayer } from '@afterhours-systems/blockskin/react'
 `MinecraftPlayer` takes the usual group props (`position`, `rotation`,
 `scale`) plus `skin`, `model`, `cape`, `backEquipment`, `ears`, `layers`,
 `nameTag`, `animation`, `animationSpeed`, `paused`, `upsideDown`, `onLoad` and
-`onError`. Keep image props stable between renders: a new value reloads the
+`onError`. `backEquipment` is `'cape'`, `'elytra'` or `null` (none), and
+switching it never reloads the texture. Keep image props stable between renders: a new value reloads the
 texture. `SkinViewer` adds the viewer props (`fov`, `zoom`, `controls`,
 `autoRotate`, `background`, `backgroundImage`, `panorama`, `pixelRatio`,
 `renderPaused`, light intensities) and a ref with `screenshot()`,
@@ -117,12 +120,21 @@ colours.
 | `run`    | `RunningAnimation`                                                 |
 | `fly`    | `FlyingAnimation` (elytra pose)                                    |
 | `swim`   | `SwimAnimation`                                                    |
-| `wave`   | `WaveAnimation({ arm: 'left' \| 'right' })`                        |
+| `wave`   | `WaveAnimation('left' \| 'right')` or `({ arm })`                  |
 | `crouch` | `CrouchAnimation` (`runOnce`, `showProgress`, `addHitAnimation()`) |
 | `hit`    | `HitAnimation`                                                     |
 
 Every animation has `speed`, `paused` and `progress`, and
-`addAnimation(fn)` stacks extra motion on top. Write your own as a function:
+`addAnimation(fn)` stacks extra motion on top. Idle, walk and run keep the
+head still unless you ask for a slow look around:
+
+```js
+viewer.animation = new WalkingAnimation({ lookAround: true })
+// in React, pass an instance:
+// animation={useMemo(() => new WalkingAnimation({ lookAround: true }), [])}
+```
+
+Write your own as a function:
 
 ```js
 viewer.animation = new FunctionAnimation((player, progress) => {
@@ -142,16 +154,20 @@ new NameTagObject('Steve', { font: '48px monospace', textStyle: 'yellow' })
 
 ## Coming from skinview3d
 
-Most code moves over by changing the import. The differences:
+The concepts and most names carry over, so moving is largely mechanical. The
+differences:
 
-| skinview3d                                  | blockskin                                                  |
-| ------------------------------------------- | ---------------------------------------------------------- |
-| `model: 'default'`                          | `model: 'classic'`                                         |
-| `loadSkin(image)` returns `void` for images | every `load*` returns a Promise                            |
-| FXAA post-processing                        | the renderer's own multisample anti-aliasing (`antialias`) |
-| sets `ColorManagement.enabled = false`      | leaves global three state alone                            |
-| bundles the Minecraft font                  | bring your own font for name tags                          |
-| slim arms level with classic ones           | slim arms half a pixel lower, as in the game               |
+| skinview3d                                  | blockskin                                                     |
+| ------------------------------------------- | ------------------------------------------------------------- |
+| `model: 'default'`                          | `model: 'classic'`                                            |
+| `loadSkin(image)` returns `void` for images | every `load*` returns a Promise                               |
+| FXAA post-processing                        | the renderer's own multisample anti-aliasing (`antialias`)    |
+| sets `ColorManagement.enabled = false`      | leaves global three state alone                               |
+| bundles the Minecraft font                  | bring your own font for name tags                             |
+| slim arms level with classic ones           | slim arms half a pixel lower, as in the game                  |
+| `BodyPart.innerLayer` / `outerLayer`        | `BodyPart.inner` / `outer`                                    |
+| `WalkingAnimation` turns the head           | the head stays still unless `{ lookAround: true }`            |
+| `new WaveAnimation('right')`                | the same, or `{ arm: 'right' }`; both default to the left arm |
 
 ## Development
 

@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { WalkingAnimation } from '../animation/locomotion.js'
 import { FunctionAnimation } from '../animation/PlayerAnimation.js'
 import { PlayerObject } from '../model/PlayerObject.js'
-import { applyLayers, resolveAnimation } from './props.js'
+import { opaqueSkin } from '../format/testPixels.js'
+import type { Pixels } from '../format/pixels.js'
+import { applyLayers, loadBackEquipment, resolveAnimation } from './props.js'
 
 describe('resolveAnimation', () => {
   it('creates a built-in animation from its name', () => {
@@ -60,5 +62,51 @@ describe('applyLayers', () => {
     applyLayers(player, undefined)
     expect(player.skin.body.inner.visible).toBe(true)
     expect(player.skin.body.outer.visible).toBe(true)
+  })
+})
+
+describe('loadBackEquipment', () => {
+  it('shows the equipment chosen while the cape was still loading', async () => {
+    const player = new PlayerObject()
+    let wanted: 'cape' | 'elytra' | null = 'cape'
+    let release!: (p: Pixels) => void
+    const loading = loadBackEquipment(
+      player,
+      'cape.png',
+      () => wanted,
+      undefined,
+      () => new Promise((r) => (release = r)),
+    )
+    wanted = 'elytra'
+    release(opaqueSkin(64, 32))
+    await loading
+    expect(player.backEquipment).toBe('elytra')
+    expect(player.cape.visible).toBe(false)
+    expect(player.elytra.visible).toBe(true)
+  })
+
+  it('keeps a loaded cape hidden when none is wanted', async () => {
+    const player = new PlayerObject()
+    await loadBackEquipment(
+      player,
+      'cape.png',
+      () => null,
+      undefined,
+      async () => opaqueSkin(64, 32),
+    )
+    expect(player.backEquipment).toBeNull()
+  })
+
+  it('clears the equipment for a null cape', async () => {
+    const player = new PlayerObject()
+    await loadBackEquipment(
+      player,
+      'cape.png',
+      () => 'cape',
+      undefined,
+      async () => opaqueSkin(64, 32),
+    )
+    await loadBackEquipment(player, null, () => 'cape')
+    expect(player.backEquipment).toBeNull()
   })
 })

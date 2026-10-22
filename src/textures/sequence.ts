@@ -1,6 +1,8 @@
-export type LatestWins = <T>(
-  task: (signal: AbortSignal) => Promise<T>,
-) => Promise<{ stale: boolean; value?: T }>
+export interface LatestWins {
+  <T>(task: (signal: AbortSignal) => Promise<T>): Promise<{ stale: boolean; value?: T }>
+  /** Supersedes whatever is pending without starting anything new. */
+  cancel(): void
+}
 
 /**
  * Runs async loads so that only the most recent one counts. Starting a new
@@ -9,7 +11,7 @@ export type LatestWins = <T>(
  */
 export function createLatestWins(): LatestWins {
   let current: AbortController | null = null
-  return async (task) => {
+  const run = async <T>(task: (signal: AbortSignal) => Promise<T>) => {
     current?.abort()
     const controller = new AbortController()
     current = controller
@@ -21,4 +23,10 @@ export function createLatestWins(): LatestWins {
       throw error
     }
   }
+  return Object.assign(run, {
+    cancel() {
+      current?.abort()
+      current = null
+    },
+  })
 }

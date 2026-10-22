@@ -137,3 +137,43 @@ describe('SwimAnimation', () => {
     expect(Math.abs(Math.cos(diff) + 1)).toBeLessThan(1e-6)
   })
 })
+
+describe('lookAround', () => {
+  const kinds = [
+    ['idle', (o?: { lookAround?: boolean }) => new IdleAnimation(o)],
+    ['walk', (o?: { lookAround?: boolean }) => new WalkingAnimation(o)],
+    ['run', (o?: { lookAround?: boolean }) => new RunningAnimation(o)],
+  ] as const
+
+  it.each(kinds)('%s keeps the head still by default', (_, make) => {
+    const player = new PlayerObject()
+    const animation = make()
+    for (let t = 0; t <= 3; t += 0.25) {
+      runTo(animation, player, t)
+      expect(player.skin.head.rotation.x).toBe(0)
+      expect(player.skin.head.rotation.y).toBe(0)
+    }
+  })
+
+  it.each(kinds)('%s turns the head gently with lookAround', (_, make) => {
+    const player = new PlayerObject()
+    const animation = make({ lookAround: true })
+    let moved = 0
+    for (let t = 0; t <= 3; t += 0.25) {
+      runTo(animation, player, t)
+      const { x, y } = player.skin.head.rotation
+      expect(Math.abs(y)).toBeLessThanOrEqual(0.2)
+      expect(Math.abs(x)).toBeLessThanOrEqual(0.1)
+      moved = Math.max(moved, Math.abs(y))
+    }
+    expect(moved).toBeGreaterThan(0.1)
+  })
+
+  it('leaves the walk cycle itself unchanged', () => {
+    const plain = new PlayerObject()
+    const looking = new PlayerObject()
+    runTo(new WalkingAnimation(), plain, 0.4)
+    runTo(new WalkingAnimation({ lookAround: true }), looking, 0.4)
+    expect(limbAngles(looking)).toEqual(limbAngles(plain))
+  })
+})

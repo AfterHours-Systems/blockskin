@@ -62,6 +62,8 @@ export class NameTagObject extends Sprite {
       metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent ||
       Number(/(\d+(?:\.\d+)?)px/.exec(font)?.[1] ?? 16)
     const layout = nameTagLayout(metrics.width, fontHeight, margin, height)
+    const resized =
+      this.canvas.width !== layout.canvasWidth || this.canvas.height !== layout.canvasHeight
     this.canvas.width = layout.canvasWidth
     this.canvas.height = layout.canvasHeight
     // Resizing the canvas resets the context state.
@@ -73,7 +75,12 @@ export class NameTagObject extends Sprite {
     context.fillText(this.text, margin[3], margin[0])
     this.scale.set(layout.spriteWidth, layout.spriteHeight, 1)
     const map = (this.material as SpriteMaterial).map
-    if (map) map.needsUpdate = true
+    if (!map) return
+    // three sizes texture storage on first upload and later only writes into
+    // it, so a canvas that changed size (a web font arriving) needs the old
+    // storage dropped first.
+    if (resized) map.dispose()
+    map.needsUpdate = true
   }
 
   dispose(): void {

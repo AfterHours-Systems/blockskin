@@ -32,8 +32,13 @@ describe('WaveAnimation', () => {
     },
   )
 
-  it('waves the right arm by default', () => {
-    expect(new WaveAnimation().arm).toBe('right')
+  it('waves the left arm by default, as skinview3d does', () => {
+    expect(new WaveAnimation().arm).toBe('left')
+  })
+
+  it("takes skinview3d's string argument", () => {
+    expect(new WaveAnimation('right').arm).toBe('right')
+    expect(new WaveAnimation('left').arm).toBe('left')
   })
 })
 

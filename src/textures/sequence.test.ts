@@ -50,3 +50,25 @@ describe('createLatestWins', () => {
     await expect(run(async () => Promise.reject(new Error('404')))).rejects.toThrow('404')
   })
 })
+
+describe('createLatestWins cancel', () => {
+  it('marks the pending load stale and aborts its signal', async () => {
+    const run = createLatestWins()
+    const pending = deferred<string>()
+    let signal: AbortSignal | undefined
+    const a = run((s) => {
+      signal = s
+      return pending.promise
+    })
+    run.cancel()
+    pending.resolve('late')
+    expect(await a).toEqual({ stale: true })
+    expect(signal?.aborted).toBe(true)
+  })
+
+  it('leaves later loads working', async () => {
+    const run = createLatestWins()
+    run.cancel()
+    expect(await run(async () => 'next')).toEqual({ stale: false, value: 'next' })
+  })
+})

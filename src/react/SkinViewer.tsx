@@ -165,11 +165,22 @@ function Stage({
     perspective.updateProjectionMatrix()
   }, [camera, fov, zoom])
 
+  const onErrorRef = useRef(onError)
+  onErrorRef.current = onError
+  const image = panorama ?? backgroundImage
+  const isPanorama = panorama != null
+
+  // Colour and image are separate effects so a colour change never reloads
+  // the image, and an unrelated re-render (say, a new inline onError)
+  // triggers neither.
   useEffect(() => {
-    const image = panorama ?? backgroundImage
+    if (image) return
+    scene.background = background === null ? null : new Color(background)
+  }, [scene, background, image])
+
+  useEffect(() => {
     if (!image) {
-      void loadBackground(async () => null)
-      scene.background = background === null ? null : new Color(background)
+      loadBackground.cancel()
       return
     }
     let texture: Texture | null = null
@@ -178,15 +189,16 @@ function Stage({
       if (signal.aborted) return
       texture = new Texture(source)
       texture.colorSpace = SRGBColorSpace
-      if (panorama) texture.mapping = EquirectangularReflectionMapping
+      if (isPanorama) texture.mapping = EquirectangularReflectionMapping
       texture.needsUpdate = true
       scene.background = texture
-    }).catch((error: unknown) => (onError ?? console.error)(error))
+    }).catch((error: unknown) => (onErrorRef.current ?? console.error)(error))
     return () => {
+      loadBackground.cancel()
       if (texture && scene.background === texture) scene.background = null
       texture?.dispose()
     }
-  }, [scene, background, backgroundImage, panorama, loadBackground, onError])
+  }, [scene, image, isPanorama, loadBackground])
 
   const onDragChange = useCallback((value: boolean) => {
     dragging.current = value

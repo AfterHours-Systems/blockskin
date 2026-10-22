@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo, type RefObject } from 'react'
+import { useEffect, useState, type RefObject } from 'react'
 import { OrbitControls as ThreeOrbitControls } from 'three/addons/controls/OrbitControls.js'
 
 export interface OrbitControlsProps {
@@ -13,25 +13,31 @@ export interface OrbitControlsProps {
 export function OrbitControls({ enabled = true, controlsRef, onDragChange }: OrbitControlsProps) {
   const camera = useThree((state) => state.camera)
   const domElement = useThree((state) => state.gl.domElement)
-  const controls = useMemo(() => new ThreeOrbitControls(camera, domElement), [camera, domElement])
+  const [controls, setControls] = useState<ThreeOrbitControls | null>(null)
 
+  // The constructor attaches DOM listeners and dispose() removes them, so
+  // both happen inside one effect: StrictMode's remount then gets a fresh,
+  // connected instance instead of a disposed one.
   useEffect(() => {
-    controls.enablePan = false
-    controls.minDistance = 10
-    controls.maxDistance = 256
-    if (controlsRef) controlsRef.current = controls
+    const created = new ThreeOrbitControls(camera, domElement)
+    created.enablePan = false
+    created.minDistance = 10
+    created.maxDistance = 256
+    setControls(created)
+    if (controlsRef) controlsRef.current = created
     return () => {
-      if (controlsRef) controlsRef.current = null
-      controls.dispose()
+      created.dispose()
+      if (controlsRef?.current === created) controlsRef.current = null
+      setControls(null)
     }
-  }, [controls, controlsRef])
+  }, [camera, domElement, controlsRef])
 
   useEffect(() => {
-    controls.enabled = enabled
+    if (controls) controls.enabled = enabled
   }, [controls, enabled])
 
   useEffect(() => {
-    if (!onDragChange) return
+    if (!controls || !onDragChange) return
     const start = () => onDragChange(true)
     const end = () => onDragChange(false)
     controls.addEventListener('start', start)
@@ -42,6 +48,6 @@ export function OrbitControls({ enabled = true, controlsRef, onDragChange }: Orb
     }
   }, [controls, onDragChange])
 
-  useFrame(() => controls.update())
+  useFrame(() => controls?.update())
   return null
 }
