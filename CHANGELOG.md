@@ -1,8 +1,12 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.0-alpha.1 (2026-10-24)
 
-First release: a three.js core (`PlayerObject`, `SkinViewer`, animations,
+First alpha, published under the npm tag `alpha`
+(`pnpm add @afterhours-systems/blockskin@alpha`). The API may still change
+before 0.1.0.
+
+It contains: a three.js core (`PlayerObject`, `SkinViewer`, animations,
 name tags, skin/cape/ear format handling) and React Three Fiber components
 (`MinecraftPlayer`, `SkinViewer`, `OrbitControls`), with feature parity with
 skinview3d 3.4.2.

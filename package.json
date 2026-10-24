@@ -1,6 +1,6 @@
 {
   "name": "@afterhours-systems/blockskin",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.1",
   "description": "Minecraft skin viewer for three.js and React Three Fiber, built on your own three",
   "keywords": [
     "minecraft",
