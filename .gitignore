@@ -1,3 +1,8 @@
 node_modules
 dist
 *.tgz
+
+# Local secrets: direnv and dotenv files never belong in the repo.
+.envrc
+.env
+.env.*
