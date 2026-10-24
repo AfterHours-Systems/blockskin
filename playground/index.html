@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>blockskin playground</title>
+    <style>
+      body {
+        margin: 0;
+        font:
+          14px system-ui,
+          sans-serif;
+        background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0 0 / 20px
+          20px;
+      }
+      #root {
+        display: flex;
+        gap: 16px;
+        padding: 16px;
+        align-items: flex-start;
+      }
+      fieldset {
+        margin: 0 0 8px;
+        background: #fff;
+      }
+      label {
+        display: block;
+        margin: 2px 0;
+      }
+      #error {
+        color: #b00;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>
