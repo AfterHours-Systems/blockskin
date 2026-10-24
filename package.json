@@ -13,9 +13,12 @@
     "3d"
   ],
   "license": "MIT",
-  "repository": "github:afterhours-systems/blockskin",
-  "homepage": "https://github.com/afterhours-systems/blockskin#readme",
-  "bugs": "https://github.com/afterhours-systems/blockskin/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AfterHours-Systems/blockskin.git"
+  },
+  "homepage": "https://github.com/AfterHours-Systems/blockskin#readme",
+  "bugs": "https://github.com/AfterHours-Systems/blockskin/issues",
   "type": "module",
   "packageManager": "pnpm@12.14.0",
   "sideEffects": false,
